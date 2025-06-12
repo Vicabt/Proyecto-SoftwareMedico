@@ -1,0 +1,555 @@
+{% extends 'pagina_principal/base.html' %}
+{% block content %}
+<section id="clientLogos" class="py-4 py-lg-5 bg-white">
+    <div class="container">
+        <div class="swiper client-swiper">
+            <div class="swiper-wrapper align-items-center">
+                <div class="swiper-slide">
+                    <img src="{{ url_for('static', filename='img/pagina_principal/cn-1.png')}}" alt="Cliente Logo 1" class="client-logo-img">
+                </div>
+                <div class="swiper-slide">
+                    <img src="{{ url_for('static', filename='img/pagina_principal/cn-2.png')}}" alt="Cliente Logo 2" class="client-logo-img">
+                </div>
+                <div class="swiper-slide">
+                    <img src="{{ url_for('static', filename='img/pagina_principal/cn-3.png')}}" alt="Cliente Logo 3" class="client-logo-img">
+                </div>
+                <div class="swiper-slide">
+                    <img src="{{ url_for('static', filename='img/pagina_principal/cn-4.png')}}" alt="Cliente Logo 4" class="client-logo-img">
+                </div>
+                <div class="swiper-slide">
+                    <img src="{{ url_for('static', filename='img/pagina_principal/cn-5.png')}}" alt="Cliente Logo 5" class="client-logo-img">
+                </div>
+                <div class="swiper-slide">
+                    <img src="{{ url_for('static', filename='img/pagina_principal/cn-6.png')}}" alt="Cliente Logo 6" class="client-logo-img">
+                </div>
+                <div class="swiper-slide">
+                    <img src="{{ url_for('static', filename='img/pagina_principal/cn-7.png')}}" alt="Cliente Logo 7" class="client-logo-img">
+                </div>
+            </div>
+            <div class="swiper-pagination client-swiper-pagination"></div>
+        </div>
+    </div>
+</section>
+<section class="cta-banner text-center text-white">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-9 col-md-10">
+                <h2 class="cta-title mb-3 animate-fade-in" style="animation-delay: 0.1s;">¿Listo para transformar tu consultorio?</h2>
+                <p class="cta-text lead animate-fade-in" style="animation-delay: 0.2s;">
+                    Soy tu compañero digital en esta transformación. Juntos podemos hacer que la gestión de tu consultorio sea más eficiente, organizada y profesional. ¿Por qué no me das una oportunidad?
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+<section id="timelineFeatures" class="timeline-features-section py-5 py-lg-6 bg-white position-relative">
+    <div class="container">
+        <div class="timeline-bg-shape shape-1 d-none d-lg-block"></div>
+        <div class="timeline-bg-shape shape-2 d-none d-lg-block"></div>
+
+        <div class="row justify-content-center position-relative timeline-row g-5">
+            <div class="col-lg-4 col-md-6" style="z-index: 2;">
+                <div class="timeline-item text-center animate-fade-in" style="animation-delay: 0.2s;">
+                    <div class="timeline-icon-wrapper">
+                        <i class="bi bi-calendar-check timeline-icon"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h5 class="timeline-title">Agenda Inteligente</h5>
+                        <p class="timeline-desc">
+                            Te ayudo a organizar las citas de manera eficiente. Puedes programar, confirmar y gestionar las citas desde cualquier lugar, y yo me encargo de enviar recordatorios automáticos a tus pacientes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6" style="z-index: 2;">
+                <div class="timeline-item text-center animate-fade-in" style="animation-delay: 0.4s;">
+                    <div class="timeline-icon-wrapper">
+                        <i class="bi bi-person-check timeline-icon"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h5 class="timeline-title">Gestión de Pacientes</h5>
+                        <p class="timeline-desc">
+                            Mantengo toda la información de tus pacientes organizada y segura. Desde datos personales hasta historial médico, todo está a un clic de distancia.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6" style="z-index: 2;">
+                <div class="timeline-item text-center animate-fade-in" style="animation-delay: 0.6s;">
+                    <div class="timeline-icon-wrapper">
+                        <i class="bi bi-people timeline-icon"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h5 class="timeline-title">Equipo Médico</h5>
+                        <p class="timeline-desc">
+                            Gestiono la información de tu equipo médico, sus horarios y especialidades. Así podrás asignar citas de manera más eficiente y mantener todo organizado.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<section id="funcionalidades" class="funcionalidades-section bg-light">
+    <div class="container py-5">
+        <div class="title-section text-center mb-5">
+            <p class="text-uppercase small fw-bold text-primary mb-1 animate-fade-in" style="animation-delay: 0.1s;">Conoce las Funcionalidades</p>
+            <h1 class="fw-bolder text-dark animate-fade-in" style="animation-delay: 0.2s;">Software Médico <span class="text-primary">Inteligente</span></h1>
+        </div>
+        <div class="row g-4" id="card-container">
+        </div>
+    </div>
+</section>
+<section id="servicesTabs" class="services-tabs-section py-5 py-lg-6 bg-white">
+    <div class="container">
+        <div class="row justify-content-center text-center mb-5">
+            <div class="col-lg-8">
+                <h2 class="section-main-title fw-bold text-dark animate-fade-in" style="animation-delay: 0.1s;">¿Qué puedo hacer por ti?</h2>
+                <p class="section-subtitle text-muted animate-fade-in" style="animation-delay: 0.2s;">
+                    Descubre cómo puedo ayudarte a gestionar tu consultorio de manera más eficiente
+                </p>
+            </div>
+        </div>
+        <div class="row g-lg-5">
+            <div class="col-lg-4">
+                <div class="d-flex align-items-start">
+                    <div class="nav flex-column nav-pills service-pills me-3 animate-fade-in" id="v-pills-tab" role="tablist" aria-orientation="vertical" style="animation-delay: 0.3s;">
+                        <button class="nav-link active text-start" id="v-pills-citas-tab" data-bs-toggle="pill" data-bs-target="#v-pills-citas" type="button" role="tab" aria-controls="v-pills-citas" aria-selected="true">Gestión de Médicos</button>
+                        <button class="nav-link text-start" id="v-pills-hc-tab" data-bs-toggle="pill" data-bs-target="#v-pills-hc" type="button" role="tab" aria-controls="v-pills-hc" aria-selected="false">Gestión de Pacientes</button>
+                        <button class="nav-link text-start" id="v-pills-facturacion-tab" data-bs-toggle="pill" data-bs-target="#v-pills-facturacion" type="button" role="tab" aria-controls="v-pills-facturacion" aria-selected="false">Agenda y Citas</button>
+                        <button class="nav-link text-start" id="v-pills-reportes-tab" data-bs-toggle="pill" data-bs-target="#v-pills-reportes" type="button" role="tab" aria-controls="v-pills-reportes" aria-selected="false">Historia Clínica</button>
+                        <button class="nav-link text-start" id="v-pills-telemedicina-tab" data-bs-toggle="pill" data-bs-target="#v-pills-telemedicina" type="button" role="tab" aria-controls="v-pills-telemedicina" aria-selected="false">Facturación</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="tab-content service-tab-content" id="v-pills-tabContent">
+                    <div class="tab-pane fade show active animate-fade-in" id="v-pills-citas" role="tabpanel" aria-labelledby="v-pills-citas-tab" tabindex="0" style="animation-delay: 0.4s;">
+                        <h3 class="tab-content-title">Gestión de Médicos</h3>
+                        <p class="tab-content-quote fst-italic text-muted">"Profesionales organizados, atención eficiente."</p>
+                        <div class="row g-4 align-items-center">
+                            <div class="col-md-7">
+                                <p class="tab-content-desc">Administra la información de tus médicos: nombre, especialidad, datos de contacto y horarios disponibles. Mantén un registro completo y actualizado de tu equipo médico.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade animate-fade-in" id="v-pills-hc" role="tabpanel" aria-labelledby="v-pills-hc-tab" tabindex="0" style="animation-delay: 0.4s;">
+                        <h3 class="tab-content-title">Gestión de Pacientes</h3>
+                        <p class="tab-content-quote fst-italic text-muted">"Datos completos, atención personalizada."</p>
+                        <div class="row g-4 align-items-center">
+                            <div class="col-md-7">
+                                <p class="tab-content-desc">Registra y gestiona la información de tus pacientes: datos personales, contacto de emergencia y su historial completo de citas y atención médica.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade animate-fade-in" id="v-pills-facturacion" role="tabpanel" aria-labelledby="v-pills-facturacion-tab" tabindex="0" style="animation-delay: 0.4s;">
+                        <h3 class="tab-content-title">Agenda y Citas</h3>
+                        <p class="tab-content-quote fst-italic text-muted">"Organización eficiente, sin complicaciones."</p>
+                        <div class="row g-4 align-items-center">
+                            <div class="col-md-7">
+                                <p class="tab-content-desc">Programa, cancela o reagenda citas médicas. Visualiza la disponibilidad de los médicos y mantén un control eficiente de la agenda del consultorio.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade animate-fade-in" id="v-pills-reportes" role="tabpanel" aria-labelledby="v-pills-reportes-tab" tabindex="0" style="animation-delay: 0.4s;">
+                        <h3 class="tab-content-title">Historia Clínica</h3>
+                        <p class="tab-content-quote fst-italic text-muted">"Registro completo, seguimiento preciso."</p>
+                        <div class="row g-4 align-items-center">
+                            <div class="col-md-7">
+                                <p class="tab-content-desc">Mantén un registro detallado de cada consulta: diagnóstico, tratamientos, medicamentos recetados y observaciones médicas. Accede al historial completo del paciente.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade animate-fade-in" id="v-pills-telemedicina" role="tabpanel" aria-labelledby="v-pills-telemedicina-tab" tabindex="0" style="animation-delay: 0.4s;">
+                        <h3 class="tab-content-title">Facturación</h3>
+                        <p class="tab-content-quote fst-italic text-muted">"Control financiero, gestión sencilla."</p>
+                        <div class="row g-4 align-items-center">
+                            <div class="col-md-7">
+                                <p class="tab-content-desc">Registra servicios médicos, costos de consultas y procedimientos. Gestiona diferentes métodos de pago y genera facturas en PDF para tus pacientes.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<section id="precios" class="pricing-section py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center text-center mb-5">
+            <div class="col-lg-8">
+                <h2 class="section-title fw-bold">Planes a tu medida</h2>
+                <p class="section-subtitle text-muted">Elige el plan que mejor se adapte a las necesidades de tu consultorio. Estoy aquí para crecer contigo.</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Básico</h3>
+                        <div class="price">
+                            <span class="currency">$</span>
+                            <span class="amount">99</span>
+                            <span class="period">/mes</span>
+                        </div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul>
+                            <li>Gestión de pacientes</li>
+                            <li>Agenda de citas</li>
+                            <li>Historia clínica básica</li>
+                            <li>Soporte por email</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-footer">
+                        <a href="#" class="btn btn-primary">Elegir Plan</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="pricing-card featured">
+                    <div class="pricing-header">
+                        <h3>Profesional</h3>
+                        <div class="price">
+                            <span class="currency">$</span>
+                            <span class="amount">199</span>
+                            <span class="period">/mes</span>
+                        </div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul>
+                            <li>Todas las características del plan Básico</li>
+                            <li>Facturación electrónica</li>
+                            <li>Reportes avanzados</li>
+                            <li>Soporte prioritario</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-footer">
+                        <a href="#" class="btn btn-primary">Elegir Plan</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Empresarial</h3>
+                        <div class="price">
+                            <span class="currency">$</span>
+                            <span class="amount">299</span>
+                            <span class="period">/mes</span>
+                        </div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul>
+                            <li>Todas las características del plan Profesional</li>
+                            <li>Múltiples sucursales</li>
+                            <li>API personalizada</li>
+                            <li>Soporte 24/7</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-footer">
+                        <a href="#" class="btn btn-primary">Elegir Plan</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<section id="testimonios" class="testimonios-section">
+    <div class="container">
+        <div class="testimonios-title">
+            <h2 class="fw-bold">Lo que dicen quienes ya confían en mí</h2>
+            <p>Descubre cómo he ayudado a otros consultorios a mejorar su gestión diaria</p>
+        </div>
+        
+        <div class="testimonios-swiper swiper">
+            <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                    <div class="testimonio-card">
+                        <div class="testimonio-content">
+                            <div class="testimonio-quote">"</div>
+                            <p class="testimonio-text">MediSoft ha transformado completamente la gestión de mi consultorio. La facilidad de uso y la eficiencia del sistema me permiten dedicar más tiempo a mis pacientes.</p>
+                            <div class="testimonio-author">
+                                <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Dr. Juan Pérez">
+                                <div class="testimonio-author-info">
+                                    <h5>Dr. Juan Pérez</h5>
+                                    <p>Cardiólogo - Clínica del Corazón</p>
+                                    <div class="testimonio-rating">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="swiper-slide">
+                    <div class="testimonio-card">
+                        <div class="testimonio-content">
+                            <div class="testimonio-quote">"</div>
+                            <p class="testimonio-text">La implementación de MediSoft ha mejorado significativamente nuestra productividad. El soporte técnico es excepcional y siempre están disponibles para ayudarnos.</p>
+                            <div class="testimonio-author">
+                                <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Dra. María González">
+                                <div class="testimonio-author-info">
+                                    <h5>Dra. María González</h5>
+                                    <p>Pediatra - Centro Pediátrico</p>
+                                    <div class="testimonio-rating">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-half"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="swiper-slide">
+                    <div class="testimonio-card">
+                        <div class="testimonio-content">
+                            <div class="testimonio-quote">"</div>
+                            <p class="testimonio-text">La plataforma es intuitiva y fácil de usar. La gestión de historias clínicas y citas se ha simplificado enormemente. ¡Altamente recomendado!</p>
+                            <div class="testimonio-author">
+                                <img src="https://randomuser.me/api/portraits/men/67.jpg" alt="Dr. Carlos Rodríguez">
+                                <div class="testimonio-author-info">
+                                    <h5>Dr. Carlos Rodríguez</h5>
+                                    <p>Dermatólogo - Clínica de la Piel</p>
+                                    <div class="testimonio-rating">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="swiper-slide">
+                    <div class="testimonio-card">
+                        <div class="testimonio-content">
+                            <div class="testimonio-quote">"</div>
+                            <p class="testimonio-text">El sistema de facturación integrado ha simplificado enormemente nuestro proceso administrativo. Ahora todo está centralizado y es más eficiente.</p>
+                            <div class="testimonio-author">
+                                <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Dra. Laura Martínez">
+                                <div class="testimonio-author-info">
+                                    <h5>Dra. Laura Martínez</h5>
+                                    <p>Ginecóloga - Clínica de la Mujer</p>
+                                    <div class="testimonio-rating">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="swiper-slide">
+                    <div class="testimonio-card">
+                        <div class="testimonio-content">
+                            <div class="testimonio-quote">"</div>
+                            <p class="testimonio-text">La gestión de inventario y farmacia es excelente. Nos ha ayudado a reducir pérdidas y mantener un mejor control de nuestros medicamentos.</p>
+                            <div class="testimonio-author">
+                                <img src="https://randomuser.me/api/portraits/men/45.jpg" alt="Dr. Andrés López">
+                                <div class="testimonio-author-info">
+                                    <h5>Dr. Andrés López</h5>
+                                    <p>Farmacéutico - Farmacia Central</p>
+                                    <div class="testimonio-rating">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-half"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="swiper-slide">
+                    <div class="testimonio-card">
+                        <div class="testimonio-content">
+                            <div class="testimonio-quote">"</div>
+                            <p class="testimonio-text">La integración con laboratorios y la gestión de resultados ha mejorado significativamente nuestra eficiencia. Excelente herramienta para clínicas.</p>
+                            <div class="testimonio-author">
+                                <img src="https://randomuser.me/api/portraits/women/33.jpg" alt="Dra. Patricia Sánchez">
+                                <div class="testimonio-author-info">
+                                    <h5>Dra. Patricia Sánchez</h5>
+                                    <p>Patóloga - Laboratorio Central</p>
+                                    <div class="testimonio-rating">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="swiper-slide">
+                    <div class="testimonio-card">
+                        <div class="testimonio-content">
+                            <div class="testimonio-quote">"</div>
+                            <p class="testimonio-text">El módulo de telemedicina ha sido fundamental para mantener la atención a nuestros pacientes durante la pandemia. Muy satisfecho con los resultados.</p>
+                            <div class="testimonio-author">
+                                <img src="https://randomuser.me/api/portraits/men/22.jpg" alt="Dr. Roberto García">
+                                <div class="testimonio-author-info">
+                                    <h5>Dr. Roberto García</h5>
+                                    <p>Médico General - Clínica Familiar</p>
+                                    <div class="testimonio-rating">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="swiper-slide">
+                    <div class="testimonio-card">
+                        <div class="testimonio-content">
+                            <div class="testimonio-quote">"</div>
+                            <p class="testimonio-text">La personalización del sistema para nuestra especialidad ha sido excelente. El equipo de MediSoft realmente entiende las necesidades de los oftalmólogos.</p>
+                            <div class="testimonio-author">
+                                <img src="https://randomuser.me/api/portraits/women/55.jpg" alt="Dra. Ana Torres">
+                                <div class="testimonio-author-info">
+                                    <h5>Dra. Ana Torres</h5>
+                                    <p>Oftalmóloga - Clínica Visual</p>
+                                    <div class="testimonio-rating">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-half"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonios-pagination swiper-pagination"></div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+        </div>
+
+        <div class="reviews-counter">
+            <h3>Nuestras Estadísticas</h3>
+            <div class="reviews-stats">
+                <div class="review-stat">
+                    <div class="review-stat-number" data-count="500">0</div>
+                    <div class="review-stat-label">Clientes Satisfechos</div>
+                </div>
+                <div class="review-stat">
+                    <div class="review-stat-number" data-count="4.9">0</div>
+                    <div class="review-stat-label">Calificación Promedio</div>
+                </div>
+                <div class="review-stat">
+                    <div class="review-stat-number" data-count="98">0</div>
+                    <div class="review-stat-label">% de Satisfacción</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<section id="contactInfoForm" class="contact-info-form-section py-5 py-lg-6 bg-light">
+    <canvas id="techCanvas" class="position-absolute top-0 start-0 w-100 h-100" style="z-index: 0;"></canvas>
+    <div class="container">
+        <div class="row g-4 g-lg-5">
+            <div class="col-lg-5 col-md-12">
+                <div class="row g-4">
+                    <div class="col-12">
+                        <div class="contact-info-card h-100 animate-fade-in" style="animation-delay: 0.1s;">
+                            <div class="card-body text-center">
+                                <div class="icon-circle mb-3">
+                                    <i class="bi bi-geo-alt-fill"></i>
+                                </div>
+                                <h4 class="card-title mb-2">¿Dónde encontrarme?</h4>
+                                <p class="card-text text-secondary">
+                                    Cl. 23c Bis #6-51 a 6-31 <br>
+                                    Cl. 23c Bis #6-51 a 6-31, Sincelejo, Sucre
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 d-flex">
+                        <div class="contact-info-card w-100 animate-fade-in" style="animation-delay: 0.2s;">
+                            <div class="card-body text-center">
+                                 <div class="icon-circle mb-3">
+                                     <i class="bi bi-envelope-fill"></i>
+                                 </div>
+                                <h4 class="card-title mb-2">Escríbenos</h4>
+                                <p class="card-text text-secondary">
+                                    <a href="mailto:info@elipsemed.com" class="text-decoration-none text-secondary">info@MediSoft.com</a><br>
+                                    <a href="mailto:soporte@elipsemed.com" class="text-decoration-none text-secondary">soporte@MediSoft.com</a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 d-flex">
+                         <div class="contact-info-card w-100 animate-fade-in" style="animation-delay: 0.3s;">
+                            <div class="card-body text-center">
+                                 <div class="icon-circle mb-3">
+                                    <i class="bi bi-telephone-fill"></i>
+                                 </div>
+                                <h4 class="card-title mb-2">Llámanos</h4>
+                                <p class="card-text text-secondary">
+                                    +57 300 123 4567<br>
+                                    +57 310 987 6543
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7 col-md-12">
+                <div class="contact-form-card p-lg-5 animate-fade-in" style="animation-delay: 0.4s;">
+                     <h3 class="mb-4 fw-semibold text-dark">Hablemos sobre tu consultorio</h3>
+                     <form id="contactFormDetailed" action="https://formspree.io/f/mjkyqlje" method="POST">
+                         <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                <input type="text" class="form-control" id="contactName" name="name" placeholder="Nombre" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <input type="email" class="form-control" id="contactEmail" name="email" placeholder="Correo" required>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <input type="text" class="form-control" id="contactSubject" name="message" placeholder="Asunto" required>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <textarea class="form-control" id="contactMessage" name="message" rows="5" placeholder="Mensaje" required></textarea>
+                            </div>
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-contact-submit px-4">Enviar Mensaje</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+{%endblock%}

@@ -1,0 +1,447 @@
+{% extends 'panel/base_panel.html' %}
+{% block content %}
+<main class="container-fluid mt-4 flex-grow-1">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+        <h1 class="h3 fw-bold text-secondary">Gestión de Citas</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevaCitaModal">
+                <i class="fas fa-calendar-plus me-1"></i> Nueva Cita
+            </button>
+            <a href="{{ url_for('exportar_citas_pdf', busqueda=busqueda, fecha=fecha, estado=estado) }}" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="fas fa-file-export me-1"></i> Exportar PDF
+            </a>
+            <a href="{{ url_for('exportar_citas_excel', busqueda=busqueda, fecha=fecha, estado=estado) }}" class="btn btn-sm btn-outline-success ms-2">
+                <i class="fas fa-file-excel me-1"></i> Exportar Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros de búsqueda -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('cita') }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" name="busqueda" placeholder="Buscar cita..." value="{{ request.args.get('busqueda', '') }}">
+                        </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fas fa-calendar"></i></span>
+                            <input type="date" class="form-control" name="fecha" value="{{ request.args.get('fecha', '') }}">
+                        </div>
+                </div>
+                <div class="col-md-3">
+                        <select class="form-select" name="estado">
+                            <option value="">Estado de la cita</option>
+                            <option value="programada" {% if request.args.get('estado') == 'programada' %}selected{% endif %}>Programada</option>
+                            <option value="confirmada" {% if request.args.get('estado') == 'confirmada' %}selected{% endif %}>Confirmada</option>
+                            <option value="completada" {% if request.args.get('estado') == 'completada' %}selected{% endif %}>Completada</option>
+                            <option value="cancelada" {% if request.args.get('estado') == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i>Filtrar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de citas -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="tablaCitas">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">#ID</th>
+                            <th scope="col">Fecha</th>
+                            <th scope="col">Hora</th>
+                            <th scope="col">Paciente</th>
+                            <th scope="col">Médico</th>
+                            <th scope="col">Especialidad</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cita in citas %}
+                        <tr>
+                            <td>C{{ "%03d" % cita.id }}</td>
+                            <td>{{ cita.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ cita.hora.strftime('%H:%M') }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='img/panel/perfil.png') }}" class="rounded-circle me-2" width="40" height="40" alt="Foto">
+                                    <div>
+                                        <div class="fw-medium">{{ cita.paciente.nombre }} {{ cita.paciente.apellido }}</div>
+                                        <div class="small text-muted">{{ cita.paciente.tipo_documento }}: {{ cita.paciente.numero_documento }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>Dr. {{ cita.medico.nombre }} {{ cita.medico.apellido }}</td>
+                            <td>{{ especialidades[cita.medico.especialidad] if cita.medico.especialidad else 'No especificada' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'info' if cita.estado == 'programada' else 'success' if cita.estado == 'confirmada' else 'primary' if cita.estado == 'completada' else 'danger' }}">
+                                    {{ cita.estado }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary btn-action" title="Ver detalles" data-bs-toggle="modal" data-bs-target="#detallesCitaModal{{ cita.id }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-action text-white" title="Editar" data-bs-toggle="modal" data-bs-target="#editarCitaModal{{ cita.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('eliminar_cita', id=cita.id) }}">
+                                        <button type="submit" class="btn btn-danger btn-action" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>  
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if pagination.pages > 1 %}
+            <nav aria-label="Paginación de citas" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <!-- Primera página -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('cita', page=1, busqueda=busqueda, fecha=fecha, estado=estado) }}" aria-label="Primera">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    
+                    <!-- Anterior -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('cita', page=pagination.prev_num, busqueda=busqueda, fecha=fecha, estado=estado) }}" aria-label="Anterior">
+                            <span aria-hidden="true">&lsaquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Números de página -->
+                    {% for page in pagination.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                        {% if page %}
+                            <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('cita', page=page, busqueda=busqueda, fecha=fecha, estado=estado) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Siguiente -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('cita', page=pagination.next_num, busqueda=busqueda, fecha=fecha, estado=estado) }}" aria-label="Siguiente">
+                            <span aria-hidden="true">&rsaquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Última página -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('cita', page=pagination.pages, busqueda=busqueda, fecha=fecha, estado=estado) }}" aria-label="Última">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+<!-- Modal para Nueva Cita -->
+<div class="modal fade" id="nuevaCitaModal" tabindex="-1" aria-labelledby="nuevaCitaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="nuevaCitaModalLabel">Agendar Nueva Cita</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('agregar_cita') }}">
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="pacienteCita" class="form-label">Paciente</label>
+                            <select class="form-select border border-primary rounded" id="pacienteCita" name="pacienteCita" required>
+                                <option value="" selected disabled>Seleccionar paciente</option>
+                                {% for paciente in pacientes %}
+                                <option value="{{ paciente.id }}">{{ paciente.nombre }} {{ paciente.apellido }} - {{ paciente.tipo_documento }}: {{ paciente.numero_documento }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="medicoCita" class="form-label">Médico</label>
+                            <select class="form-select border border-primary rounded" id="medicoCita" name="medicoCita" required>
+                                <option value="" selected disabled>Seleccionar médico</option>
+                                {% for medico in medicos %}
+                                <option value="{{ medico.id }}">Dr. {{ medico.nombre }} {{ medico.apellido }} - {{ medico.especialidad }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="fechaCita" class="form-label">Fecha</label>
+                            <input type="date" class="form-control border border-primary rounded" id="fechaCita" name="fechaCita" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="horaCita" class="form-label">Hora</label>
+                            <input type="time" class="form-control border border-primary rounded" id="horaCita" name="horaCita" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="duracionCita" class="form-label">Duración</label>
+                            <select class="form-select border border-primary rounded" id="duracionCita" name="duracionCita" required>
+                                <option value="30" selected>30 minutos</option>
+                                <option value="45">45 minutos</option>
+                                <option value="60">1 hora</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="tipoCita" class="form-label">Tipo de Cita</label>
+                            <select class="form-select border border-primary rounded" id="tipoCita" name="tipoCita" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                                <option value="primera">Primera vez</option>
+                                <option value="control">Control</option>
+                                <option value="urgencia">Urgencia</option>
+                                <option value="procedimiento">Procedimiento</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="motivoCita" class="form-label">Sintomas</label>
+                            <textarea class="form-control border border-primary rounded" id="motivoCita" name="motivoCita" rows="2" placeholder="Ingrese los sintomas del paciente" required></textarea>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="estadoCita" class="form-label">Estado</label>
+                            <select class="form-select border border-primary rounded" id="estadoCita" name="estadoCita" required>
+                                <option value="programada" selected>Programada</option>
+                                <option value="confirmada">Confirmada</option>
+                                <option value="completada">Completada</option>
+                                <option value="cancelada">Cancelada</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="observacionesCita" class="form-label">Observaciones</label>
+                            <textarea class="form-control border border-primary rounded" id="observacionesCita" name="observacionesCita" rows="2" placeholder="Ingrese observaciones"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar cita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Cita -->
+{% for cita in citas %}
+<div class="modal fade" id="editarCitaModal{{ cita.id }}" tabindex="-1" aria-labelledby="editarCitaModalLabel{{ cita.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editarCitaModalLabel{{ cita.id }}">Editar Cita</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('editar_cita', id=cita.id) }}">
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editPacienteCita{{ cita.id }}" class="form-label">Paciente</label>
+                            <select class="form-select border border-primary rounded" id="editPacienteCita{{ cita.id }}" name="editPacienteCita" required>
+                                {% for paciente in pacientes %}
+                                <option value="{{ paciente.id }}" {% if paciente.id == cita.paciente_id %}selected{% endif %}>
+                                    {{ paciente.nombre }} {{ paciente.apellido }} - {{ paciente.tipo_documento }}: {{ paciente.numero_documento }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editMedicoCita{{ cita.id }}" class="form-label">Médico</label>
+                            <select class="form-select border border-primary rounded" id="editMedicoCita{{ cita.id }}" name="editMedicoCita" required>
+                                {% for medico in medicos %}
+                                <option value="{{ medico.id }}" {% if medico.id == cita.medico_id %}selected{% endif %}>
+                                    Dr. {{ medico.nombre }} {{ medico.apellido }} - {{ medico.especialidad }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="editFechaCita{{ cita.id }}" class="form-label">Fecha</label>
+                            <input type="date" class="form-control border border-primary rounded" id="editFechaCita{{ cita.id }}" name="editFechaCita" value="{{ cita.fecha.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editHoraCita{{ cita.id }}" class="form-label">Hora</label>
+                            <input type="time" class="form-control border border-primary rounded" id="editHoraCita{{ cita.id }}" name="editHoraCita" value="{{ cita.hora.strftime('%H:%M') }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editDuracionCita{{ cita.id }}" class="form-label">Duración</label>
+                            <select class="form-select border border-primary rounded" id="editDuracionCita{{ cita.id }}" name="editDuracionCita" required>
+                                <option value="30" {% if cita.duracion == 30 %}selected{% endif %}>30 minutos</option>
+                                <option value="45" {% if cita.duracion == 45 %}selected{% endif %}>45 minutos</option>
+                                <option value="60" {% if cita.duracion == 60 %}selected{% endif %}>1 hora</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editTipoCita{{ cita.id }}" class="form-label">Tipo de Cita</label>
+                            <select class="form-select border border-primary rounded" id="editTipoCita{{ cita.id }}" name="editTipoCita" required>
+                                <option value="primera" {% if cita.tipo_cita == 'primera' %}selected{% endif %}>Primera vez</option>
+                                <option value="control" {% if cita.tipo_cita == 'control' %}selected{% endif %}>Control</option>
+                                <option value="urgencia" {% if cita.tipo_cita == 'urgencia' %}selected{% endif %}>Urgencia</option>
+                                <option value="procedimiento" {% if cita.tipo_cita == 'procedimiento' %}selected{% endif %}>Procedimiento</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editMotivoCita{{ cita.id }}" class="form-label">Motivo de la Cita</label>
+                            <textarea class="form-control border border-primary rounded" id="editMotivoCita{{ cita.id }}" name="editMotivoCita" rows="2" placeholder="Ingrese el motivo de la cita" required>{{ cita.motivo }}</textarea>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editEstadoCita{{ cita.id }}" class="form-label">Estado</label>
+                            <select class="form-select border border-primary rounded" id="editEstadoCita{{ cita.id }}" name="editEstadoCita" required>
+                                <option value="programada" {% if cita.estado == 'programada' %}selected{% endif %}>Programada</option>
+                                <option value="confirmada" {% if cita.estado == 'confirmada' %}selected{% endif %}>Confirmada</option>
+                                <option value="completada" {% if cita.estado == 'completada' %}selected{% endif %}>Completada</option>
+                                <option value="cancelada" {% if cita.estado == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editObservacionesCita{{ cita.id }}" class="form-label">Observaciones</label>
+                            <textarea class="form-control border border-primary rounded" id="editObservacionesCita{{ cita.id }}" name="editObservacionesCita" rows="2" placeholder="Ingrese observaciones">{{ cita.observaciones }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Modal para Ver Detalles de Cita -->
+{% for cita in citas %}
+<div class="modal fade" id="detallesCitaModal{{ cita.id }}" tabindex="-1" aria-labelledby="detallesCitaModalLabel{{ cita.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"> <!-- Added modal-dialog-scrollable in case content gets long -->
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="detallesCitaModalLabel{{ cita.id }}">
+                    <i class="fas fa-calendar-check me-2"></i>Detalles de la Cita
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4"> <!-- Added padding to modal-body -->
+
+                <!-- Section 1: Core Appointment Info -->
+                <div class="row mb-4 pb-3 border-bottom">
+                    <div class="col-md-8 d-flex align-items-center">
+                         <div class="bg-light rounded-circle p-3 d-inline-block me-3">
+                            <i class="fas fa-calendar-alt fa-3x text-primary"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0">Cita #C{{ "%03d" % cita.id }}</h4>
+                            <p class="text-muted mb-0 fs-5">{{ cita.fecha.strftime('%d/%m/%Y') }} - {{ cita.hora.strftime('%H:%M') }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex flex-column justify-content-center align-items-md-end">
+                         <span class="badge fs-6 bg-{{ 'info' if cita.estado == 'programada' else 'success' if cita.estado == 'confirmada' else 'primary' if cita.estado == 'completada' else 'danger' }}">
+                            {{ cita.estado | capitalize }}
+                        </span>
+                         <small class="text-muted mt-1">Duración: {{ cita.duracion }} min</small>
+                    </div>
+                </div>
+
+                <!-- Section 2: Patient & Doctor Info -->
+                <div class="row mb-4">
+                    <!-- Patient Info -->
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <h6 class="text-muted mb-3"><i class="fas fa-user me-2"></i>Información del Paciente</h6>
+                        <div class="d-flex align-items-center">
+                            <img src="{{ url_for('static', filename='img/panel/perfil.png') }}" class="rounded-circle me-3 flex-shrink-0" width="64" height="64" alt="Foto Paciente">
+                            <div>
+                                <div class="fw-bold mb-1">{{ cita.paciente.nombre }} {{ cita.paciente.apellido }}</div>
+                                <div class="small text-muted">{{ cita.paciente.tipo_documento }}: {{ cita.paciente.numero_documento }}</div>
+                                <div class="small text-muted">Tel: {{ cita.paciente.telefono }}</div>
+                                <div class="small text-muted">Email: {{ cita.paciente.correo }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Doctor Info -->
+                    <div class="col-md-6">
+                         <h6 class="text-muted mb-3"><i class="fas fa-user-md me-2"></i>Información del Médico</h6>
+                         <div class="d-flex align-items-center">
+                            <img src="{{ url_for('static', filename='img/panel/perfil.png') }}" class="rounded-circle me-3 flex-shrink-0" width="64" height="64" alt="Foto Médico">
+                            <div>
+                                <div class="fw-bold mb-1">Dr. {{ cita.medico.nombre }} {{ cita.medico.apellido }}</div>
+                                <div class="small text-muted">Especialidad: {{ especialidades[cita.medico.especialidad] if cita.medico.especialidad else 'No especificada' }}</div>
+                                <div class="small text-muted">Reg. Médico: {{ cita.medico.numero_registro }}</div>
+                                <div class="small text-muted">Tel: {{ cita.medico.telefono }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Appointment Specifics -->
+                <div class="row pt-3 border-top">
+                    <div class="col-12">
+                         <h6 class="text-muted mb-3"><i class="fas fa-notes-medical me-2"></i>Detalles Adicionales de la Cita</h6>
+                         <dl class="row">
+                            <dt class="col-sm-3">Tipo de Cita:</dt>
+                            <dd class="col-sm-9">{{ cita.tipo_cita }}</dd>
+
+                            <dt class="col-sm-3">Motivo:</dt>
+                            <dd class="col-sm-9">{{ cita.motivo }}</dd>
+
+                            {% if cita.observaciones %}
+                            <dt class="col-sm-3">Observaciones:</dt>
+                            <dd class="col-sm-9">{{ cita.observaciones }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+
+            </div> <!-- /modal-body -->
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+                <!-- Ensure the edit modal exists and the ID matches -->
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editarCitaModal{{ cita.id }}" onclick="$('#detallesCitaModal{{ cita.id }}').modal('hide')">
+                    <i class="fas fa-edit me-1"></i>Editar Cita
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ url_for('static', filename='js/panel/alerts.js') }}"></script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/panel/styles.css') }}">
+{% endblock %}

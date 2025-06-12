@@ -1,0 +1,642 @@
+{% extends 'panel/base_panel.html' %}
+{% block content %}
+<main class="container-fluid mt-4 flex-grow-1">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+        <h1 class="h3 fw-bold text-secondary">Gestión de Médicos</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#agregarMedicoModal">
+                <i class="fas fa-user-md me-1"></i> Nuevo Médico
+            </button>
+            <a href="{{ url_for('exportar_medicos_pdf', busqueda=busqueda, especialidad=especialidad_seleccionada) }}" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+            </a>
+            <a href="{{ url_for('exportar_medicos_excel', busqueda=busqueda, especialidad=especialidad_seleccionada) }}" class="btn btn-sm btn-outline-success ms-2">
+                <i class="fas fa-file-excel me-1"></i> Exportar Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros de búsqueda -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('medico') }}" id="searchForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" name="busqueda" placeholder="Buscar por nombre, documento, correo..." value="{{ busqueda }}" id="inputBusqueda">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="especialidad" id="selectEspecialidad">
+                            <option value="">Todas las especialidades</option>
+                            {% for codigo, nombre in especialidades.items() %}
+                            <option value="{{ codigo }}" {% if especialidad_seleccionada == codigo %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-1"></i> Filtrar
+                        </button>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('medico') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-undo me-1"></i> Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de médicos -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" style="width: 5%">#ID</th>
+                            <th scope="col" style="width: 12%">Nombres</th>
+                            <th scope="col" style="width: 12%">Apellidos</th>
+                            <th scope="col" style="width: 12%">Especialidad</th>
+                            <th scope="col" style="width: 10%">Tipo Doc.</th>
+                            <th scope="col" style="width: 10%">N° Doc.</th>
+                            <th scope="col" style="width: 10%">Teléfono</th>
+                            <th scope="col" style="width: 12%">Correo</th>
+                            <th scope="col" style="width: 5%">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in medicos %}
+                        <tr>
+                            <td>M{{ "%03d"|format(m.id) }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='img/panel/perfil.png') }}" class="rounded-circle me-2" width="40" height="40" alt="Foto">
+                                    <div>
+                                        <div class="fw-medium">{{ m.nombre }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ m.apellido }}</td>
+                            <td>{{ m.nombre_especialidad }}</td>
+                            <td>{{ m.tipo_documento }}</td>
+                            <td>{{ m.numero_documento }}</td>
+                            <td>{{ m.telefono }}</td>
+                            <td>{{ m.correo }}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary btn-action" title="Ver detalles" data-bs-toggle="modal" data-bs-target="#verMedicoModal{{ m.id }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-action text-white" title="Editar" data-bs-toggle="modal" data-bs-target="#editarMedicoModal{{ m.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('eliminar_medico', id=m.id) }}">
+                                        <button type="submit" class="btn btn-danger btn-action" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if pagination.pages > 1 %}
+            <nav aria-label="Paginación de médicos" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <!-- Primera página -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('medico', page=1, busqueda=busqueda, especialidad=especialidad_seleccionada) }}" aria-label="Primera">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    
+                    <!-- Anterior -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('medico', page=pagination.prev_num, busqueda=busqueda, especialidad=especialidad_seleccionada) }}" aria-label="Anterior">
+                            <span aria-hidden="true">&lsaquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Números de página -->
+                    {% for page in pagination.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                        {% if page %}
+                            <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('medico', page=page, busqueda=busqueda, especialidad=especialidad_seleccionada) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Siguiente -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('medico', page=pagination.next_num, busqueda=busqueda, especialidad=especialidad_seleccionada) }}" aria-label="Siguiente">
+                            <span aria-hidden="true">&rsaquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Última página -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('medico', page=pagination.pages, busqueda=busqueda, especialidad=especialidad_seleccionada) }}" aria-label="Última">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+<!-- Modal para Nuevo Médico -->
+<div class="modal fade" id="agregarMedicoModal" tabindex="-1" aria-labelledby="agregarMedicoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="agregarMedicoModalLabel">Registrar Nuevo Médico</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('agregar_medico') }}">
+                <div class="modal-body">
+                    <!-- Información Básica -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-user me-2"></i>Información Básica</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="nombresMedico" class="form-label">Nombres</label>
+                            <input type="text" class="form-control border border-primary rounded" id="nombresMedico" name="nombresMedico" placeholder="Ingrese los nombres" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="apellidosMedico" class="form-label">Apellidos</label>
+                            <input type="text" class="form-control border border-primary rounded" id="apellidosMedico" name="apellidosMedico" placeholder="Ingrese los apellidos" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="fechaNacimiento" class="form-label">Fecha de Nacimiento</label>
+                            <input type="date" class="form-control border border-primary rounded" id="fechaNacimiento" name="fechaNacimiento" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="genero" class="form-label">Género</label>
+                            <select class="form-select border border-primary rounded" id="genero" name="genero" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
+                                <option value="O">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Documento de Identidad -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-id-card me-2"></i>Documento de Identidad</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="tipoDocumento" class="form-label">Tipo de Documento</label>
+                            <select class="form-select border border-primary rounded" id="tipoDocumento" name="tipoDocumento" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                                <option value="CC">Cédula de Ciudadanía</option>
+                                <option value="CE">Cédula de Extranjería</option>
+                                <option value="TI">Tarjeta de Identidad</option>
+                                <option value="RC">Registro Civil</option>
+                                <option value="PS">Pasaporte</option>
+                                <option value="PE">Permiso Especial</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="numeroDocumento" class="form-label">Número de Documento</label>
+                            <input type="text" class="form-control border border-primary rounded" id="numeroDocumento" name="numeroDocumento" placeholder="Ingrese el número de documento" required>
+                        </div>
+                    </div>
+
+                    <!-- Contacto -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-phone me-2"></i>Contacto</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="telefonoMedico" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control border border-primary rounded" id="telefonoMedico" name="telefonoMedico" placeholder="Ingrese el teléfono" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="emailMedico" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control border border-primary rounded" id="emailMedico" name="emailMedico" placeholder="Ingrese el correo electrónico" required>
+                        </div>
+                    </div>
+
+                    <!-- Ubicación -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-map-marker-alt me-2"></i>Ubicación</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="direccionMedico" class="form-label">Dirección</label>
+                            <input type="text" class="form-control border border-primary rounded" id="direccionMedico" name="direccionMedico" placeholder="Ingrese la dirección" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="departamento" class="form-label">Departamento</label>
+                            <select class="form-select border border-primary rounded" id="departamento" name="departamento" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                                {% for d in departamentos %}
+                                <option value="{{ d.id }}">{{ d.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ciudad" class="form-label">Ciudad</label>
+                            <select class="form-select border border-primary rounded" id="ciudad" name="ciudad" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Información Profesional -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-graduation-cap me-2"></i>Información Profesional</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="universidad" class="form-label">Universidad</label>
+                            <select class="form-select border border-primary rounded" id="universidad" name="universidad" required>
+                                <option value="">Seleccione una universidad</option>
+                                {% for univ in universidades %}
+                                <option value="{{ univ.id }}">{{ univ.nombre }} ({{ univ.siglas }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="aniosExperiencia" class="form-label">Años de Experiencia</label>
+                            <input type="number" class="form-control border border-primary rounded" id="aniosExperiencia" name="aniosExperiencia" min="0" placeholder="Ingrese los años de experiencia" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="especialidadMedico" class="form-label">Especialidad</label>
+                            <select class="form-select border border-primary rounded" id="especialidadMedico" name="especialidadMedico" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                                {% for codigo, nombre in especialidades.items() %}
+                                <option value="{{ codigo }}">{{ nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="registroMedico" class="form-label">Registro Médico</label>
+                            <input type="text" class="form-control border border-primary rounded" id="registroMedico" name="registroMedico" placeholder="Ingrese el registro médico" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar médico</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales para Editar Médico -->
+{% for m in medicos %}
+<div class="modal fade" id="editarMedicoModal{{ m.id }}" tabindex="-1" aria-labelledby="editarMedicoModalLabel{{ m.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editarMedicoModalLabel{{ m.id }}">
+                    <i class="fas fa-user-md me-2"></i>Editar Información del Médico
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('editar_medico', id=m.id) }}">
+                <div class="modal-body">
+                    <!-- Información Básica -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-user me-2"></i>Información Básica</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editNombresMedico{{ m.id }}" class="form-label">Nombres</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editNombresMedico{{ m.id }}" name="editNombresMedico" value="{{ m.nombre }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editApellidosMedico{{ m.id }}" class="form-label">Apellidos</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editApellidosMedico{{ m.id }}" name="editApellidosMedico" value="{{ m.apellido }}" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="editGenero{{ m.id }}" class="form-label">Género</label>
+                            <select class="form-select border border-primary rounded" id="editGenero{{ m.id }}" name="editGenero" required>
+                                <option value="M" {% if m.genero == 'M' %}selected{% endif %}>Masculino</option>
+                                <option value="F" {% if m.genero == 'F' %}selected{% endif %}>Femenino</option>
+                                <option value="O" {% if m.genero == 'O' %}selected{% endif %}>Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editFechaNacimiento{{ m.id }}" class="form-label">Fecha de Nacimiento</label>
+                            <input type="date" class="form-control border border-primary rounded" id="editFechaNacimiento{{ m.id }}" name="editFechaNacimiento" value="{{ m.fecha_nacimiento.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editEstado{{ m.id }}" class="form-label">Estado</label>
+                            <select class="form-select border border-primary rounded" id="editEstado{{ m.id }}" name="editEstado" required>
+                                <option value="Activo" {% if m.estado == 'Activo' %}selected{% endif %}>Activo</option>
+                                <option value="Inactivo" {% if m.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+                                <option value="Suspendido" {% if m.estado == 'Suspendido' %}selected{% endif %}>Suspendido</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Documento de Identidad -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-id-card me-2"></i>Documento de Identidad</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editTipoDocumento{{ m.id }}" class="form-label">Tipo de Documento</label>
+                            <select class="form-select border border-primary rounded" id="editTipoDocumento{{ m.id }}" name="editTipoDocumento" required>
+                                <option value="CC" {% if m.tipo_documento == 'CC' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                                <option value="CE" {% if m.tipo_documento == 'CE' %}selected{% endif %}>Cédula de Extranjería</option>
+                                <option value="TI" {% if m.tipo_documento == 'TI' %}selected{% endif %}>Tarjeta de Identidad</option>
+                                <option value="RC" {% if m.tipo_documento == 'RC' %}selected{% endif %}>Registro Civil</option>
+                                <option value="PS" {% if m.tipo_documento == 'PS' %}selected{% endif %}>Pasaporte</option>
+                                <option value="PE" {% if m.tipo_documento == 'PE' %}selected{% endif %}>Permiso Especial</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editNumeroDocumento{{ m.id }}" class="form-label">Número de Documento</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editNumeroDocumento{{ m.id }}" name="editNumeroDocumento" value="{{ m.numero_documento }}" required>
+                        </div>
+                    </div>
+
+                    <!-- Contacto -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-phone me-2"></i>Contacto</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editTelefonoMedico{{ m.id }}" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control border border-primary rounded" id="editTelefonoMedico{{ m.id }}" name="editTelefonoMedico" value="{{ m.telefono }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editEmailMedico{{ m.id }}" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control border border-primary rounded" id="editEmailMedico{{ m.id }}" name="editEmailMedico" value="{{ m.correo }}" required>
+                        </div>
+                    </div>
+
+                    <!-- Ubicación -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-map-marker-alt me-2"></i>Ubicación</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="editDireccionMedico{{ m.id }}" class="form-label">Dirección</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editDireccionMedico{{ m.id }}" name="editDireccionMedico" value="{{ m.direccion }}" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editDepartamento{{ m.id }}" class="form-label">Departamento</label>
+                            <select class="form-select border border-primary rounded" id="editDepartamento{{ m.id }}" name="editDepartamento" required>
+                                {% for d in departamentos %}
+                                <option value="{{ d.id }}" {% if m.departamento_id == d.id %}selected{% endif %}>{{ d.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editCiudad{{ m.id }}" class="form-label">Ciudad</label>
+                            <select class="form-select border border-primary rounded" id="editCiudad{{ m.id }}" name="editCiudad" required>
+                                {% if m.ciudad_id %}
+                                <option value="{{ m.ciudad_id }}" selected>{{ m.ciudad.nombre }}</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Información Profesional -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-graduation-cap me-2"></i>Información Profesional</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editUniversidad{{ m.id }}" class="form-label">Universidad</label>
+                            <select class="form-select border border-primary rounded" id="editUniversidad{{ m.id }}" name="editUniversidad" required>
+                                <option value="">Seleccione una universidad</option>
+                                {% for univ in universidades %}
+                                <option value="{{ univ.id }}" {% if m.universidad_id == univ.id %}selected{% endif %}>{{ univ.nombre }} ({{ univ.siglas }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editAniosExperiencia{{ m.id }}" class="form-label">Años de Experiencia</label>
+                            <input type="number" class="form-control border border-primary rounded" id="editAniosExperiencia{{ m.id }}" name="editAniosExperiencia" value="{{ m.anios_experiencia }}" min="0" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editEspecialidadMedico{{ m.id }}" class="form-label">Especialidad</label>
+                            <select class="form-select border border-primary rounded" id="editEspecialidadMedico{{ m.id }}" name="editEspecialidadMedico" required>
+                                {% for codigo, nombre in especialidades.items() %}
+                                <option value="{{ codigo }}" {% if m.especialidad == codigo %}selected{% endif %}>{{ nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editRegistroMedico{{ m.id }}" class="form-label">Registro Médico</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editRegistroMedico{{ m.id }}" name="editRegistroMedico" value="{{ m.numero_registro }}" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Guardar cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Modales para Ver Detalles del Médico -->
+{% for m in medicos %}
+<div class="modal fade" id="verMedicoModal{{ m.id }}" tabindex="-1" aria-labelledby="verMedicoModalLabel{{ m.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="verMedicoModalLabel{{ m.id }}">
+                    <i class="fas fa-user-md me-2"></i>Detalles del Médico
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Información Básica -->
+                <h6 class="mb-3 text-primary"><i class="fas fa-user me-2"></i>Información Básica</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Nombres:</strong></p>
+                        <p class="text-muted">{{ m.nombre }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Apellidos:</strong></p>
+                        <p class="text-muted">{{ m.apellido }}</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <p class="mb-1"><strong>Género:</strong></p>
+                        <p class="text-muted">
+                            {% if m.genero == 'M' %}Masculino
+                            {% elif m.genero == 'F' %}Femenino
+                            {% else %}Otro{% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <p class="mb-1"><strong>Fecha de Nacimiento:</strong></p>
+                        <p class="text-muted">{{ m.fecha_nacimiento.strftime('%d/%m/%Y') }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p class="mb-1"><strong>Estado:</strong></p>
+                        <p class="text-muted">
+                            <span class="badge {% if m.estado == 'Activo' %}bg-success{% elif m.estado == 'Inactivo' %}bg-danger{% else %}bg-warning{% endif %}">
+                                {{ m.estado }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Documento de Identidad -->
+                <h6 class="mb-3 text-primary"><i class="fas fa-id-card me-2"></i>Documento de Identidad</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Tipo de Documento:</strong></p>
+                        <p class="text-muted">
+                            {% if m.tipo_documento == 'CC' %}Cédula de Ciudadanía
+                            {% elif m.tipo_documento == 'CE' %}Cédula de Extranjería
+                            {% elif m.tipo_documento == 'TI' %}Tarjeta de Identidad
+                            {% elif m.tipo_documento == 'RC' %}Registro Civil
+                            {% elif m.tipo_documento == 'PS' %}Pasaporte
+                            {% else %}Permiso Especial{% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Número de Documento:</strong></p>
+                        <p class="text-muted">{{ m.numero_documento }}</p>
+                    </div>
+                </div>
+
+                <!-- Contacto -->
+                <h6 class="mb-3 text-primary"><i class="fas fa-phone me-2"></i>Contacto</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Teléfono:</strong></p>
+                        <p class="text-muted">{{ m.telefono }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Correo Electrónico:</strong></p>
+                        <p class="text-muted">{{ m.correo }}</p>
+                    </div>
+                </div>
+
+                <!-- Ubicación -->
+                <h6 class="mb-3 text-primary"><i class="fas fa-map-marker-alt me-2"></i>Ubicación</h6>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <p class="mb-1"><strong>Dirección:</strong></p>
+                        <p class="text-muted">{{ m.direccion }}</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Departamento:</strong></p>
+                        <p class="text-muted">{{ m.departamento.nombre if m.departamento else 'No especificado' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Ciudad:</strong></p>
+                        <p class="text-muted">{{ m.ciudad.nombre if m.ciudad else 'No especificada' }}</p>
+                    </div>
+                </div>
+
+                <!-- Información Profesional -->
+                <h6 class="mb-3 text-primary"><i class="fas fa-graduation-cap me-2"></i>Información Profesional</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Universidad:</strong></p>
+                        <p class="text-muted">{{ m.universidad.nombre if m.universidad else 'No especificada' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Años de Experiencia:</strong></p>
+                        <p class="text-muted">{{ m.anios_experiencia }} años</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Especialidad:</strong></p>
+                        <p class="text-muted">{{ especialidades.get(m.especialidad, 'No especificada') }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Registro Médico:</strong></p>
+                        <p class="text-muted">{{ m.numero_registro }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- jQuery debe ir antes que Select2 y cualquier script que use $ -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/es.js"></script>
+<script src="{{ url_for('static', filename='js/panel/alerts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/panel/medicos.js') }}"></script>
+<script>
+$(document).ready(function() {
+    function cargarTablaMedicos() {
+        var busqueda = $('#inputBusqueda').val();
+        var especialidad = $('#selectEspecialidad').val();
+        $.get("{{ url_for('medico') }}", {busqueda: busqueda, especialidad: especialidad, ajax: 1}, function(data) {
+            $('#tabla-medicos').html($(data).find('#tabla-medicos').html());
+        });
+    }
+    $('#inputBusqueda, #selectEspecialidad').on('change keyup', function() {
+        cargarTablaMedicos();
+    });
+    $('#searchForm').on('submit', function(e) {
+        e.preventDefault();
+        cargarTablaMedicos();
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .btn-action {
+        width: 35px;
+        height: 35px;
+        padding: 0;
+        border-radius: 6px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .btn-action i {
+        font-size: 0.875rem;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    }
+
+    .d-flex.gap-2 {
+        gap: 8px !important;
+    }
+</style>
+{% endblock %}

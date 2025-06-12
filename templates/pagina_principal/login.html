@@ -1,0 +1,98 @@
+{% extends 'pagina_principal/base.html' %}
+{% block content %}
+
+
+
+<section id="loginSection" class="py-5 bg-light"> 
+    <div class="container"> 
+        <div class="row justify-content-center"> 
+            <div class="col-12"> 
+                <div class="login-register-container" id="container">
+                    <div class="form-container sign-up-container">
+                        <form action="{{ url_for('register') }}" method="POST">
+                            <h1>Crear Cuenta</h1>
+                            <div class="input-group"> <i class="fas fa-user"></i> <input type="text" name="nombre" placeholder="Nombre" required /> </div>
+                            <div class="input-group"> <i class="fas fa-user"></i> <input type="text" name="apellido" placeholder="Apellido" /> </div>
+                            <div class="input-group"> <i class="fas fa-envelope"></i> <input type="email" name="email" placeholder="Correo Electrónico" required/> </div>
+                            <div class="input-group"> <i class="fas fa-phone"></i> <input type="tel" name="telefono" placeholder="Teléfono" /> </div>
+                            <div class="input-group"> <i class="fas fa-map-marker-alt"></i> <input type="text" name="ciudad" placeholder="Ciudad" /> </div>
+                            <div class="input-group"> <i class="fas fa-lock"></i> <input type="password" name="password" placeholder="Contraseña" required/> </div>
+                            <button type="submit">Registrarse</button>
+                            <p class="mobile-toggle">¿Ya tienes cuenta? <a href="#" id="signInMobile" class="mobile-switch">Inicia Sesión</a></p>
+                        </form>
+                    </div>
+                    <div class="form-container sign-in-container">
+                        <form action="{{ url_for('login') }}" method="POST">
+                            <h1>Iniciar Sesión</h1>
+                            <div class="input-group"> <i class="fas fa-envelope"></i> <input type="email" name="email" placeholder="Correo Electrónico" required/> </div>
+                            <div class="input-group"> <i class="fas fa-lock"></i> <input type="password" name="password" placeholder="Contraseña" required/> </div>
+                            <button type="submit">Entrar</button>
+                             <p class="mobile-toggle">¿No tienes cuenta? <a href="#" id="signUpMobile" class="mobile-switch">Regístrate</a></p>
+                        </form>
+                    </div>
+                    <div class="overlay-container">
+                        <div class="overlay">
+                            <div class="overlay-panel overlay-left">
+                                <h1>¡Bienvenido!</h1>
+                                <p>Para mantenerte conectado, inicia sesión con tu información personal.</p>
+                                <div class="logo-container"><img src="{{ url_for('static', filename='img/pagina_principal/logo-blanco.png')}}" alt="Logo" class="overlay-logo-img"></div>
+                                <button class="ghost" id="signIn">Iniciar Sesión</button>
+                            </div>
+                            <div class="overlay-panel overlay-right">
+                                <h1>¡Hola, Amigo!</h1>
+                                <p>Introduce tus datos personales y comienza tu viaje con nosotros.</p>
+                                <div class="logo-container"> <img src="{{ url_for('static', filename='img/pagina_principal/logo-blanco.png')}}" alt="Logo" class="overlay-logo-img"> </div>
+                                <button class="ghost" id="signUp">Registrarse</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // Script for Login/Register toggle
+    document.addEventListener('DOMContentLoaded', () => {
+        const signUpButton = document.getElementById('signUp');
+        const signInButton = document.getElementById('signIn');
+        const signUpButtonMobile = document.getElementById('signUpMobile');
+        const signInButtonMobile = document.getElementById('signInMobile');
+        const container = document.getElementById('container'); // This ID refers to login-register-container now
+
+        // Ensure the container element exists before adding listeners
+        if (container) {
+            // Desktop Button Listeners
+            if (signUpButton && signInButton) {
+                signUpButton.addEventListener('click', () => {
+                    container.classList.add('right-panel-active');
+                });
+                signInButton.addEventListener('click', () => {
+                    container.classList.remove('right-panel-active');
+                });
+            } else {
+                 console.warn("Desktop sign in/up buttons not found.");
+            }
+
+            // Mobile Button Listeners
+             if (signUpButtonMobile && signInButtonMobile) {
+                signUpButtonMobile.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent default anchor behavior
+                    container.classList.add('right-panel-active');
+                });
+                signInButtonMobile.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent default anchor behavior
+                    container.classList.remove('right-panel-active');
+                });
+            } else {
+                 console.warn("Mobile sign in/up buttons not found.");
+            }
+        } else {
+            console.error("Login/Register container element with ID 'container' not found!");
+        }
+
+    });
+</script>
+
+{% endblock %}

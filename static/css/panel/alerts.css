@@ -1,0 +1,74 @@
+/* Estilos para las alertas de confirmación */
+.swal2-popup {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.swal2-title {
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.swal2-content {
+    color: #34495e;
+    font-size: 1.1rem;
+}
+
+.swal2-confirm {
+    background-color: #dc3545 !important;
+    border: none !important;
+    padding: 0.5rem 1.5rem !important;
+    font-size: 1rem !important;
+    border-radius: 4px !important;
+    transition: all 0.3s ease !important;
+}
+
+.swal2-confirm:hover {
+    background-color: #c82333 !important;
+    transform: translateY(-1px);
+}
+
+.swal2-cancel {
+    background-color: #6c757d !important;
+    border: none !important;
+    padding: 0.5rem 1.5rem !important;
+    font-size: 1rem !important;
+    border-radius: 4px !important;
+    transition: all 0.3s ease !important;
+}
+
+.swal2-cancel:hover {
+    background-color: #5a6268 !important;
+    transform: translateY(-1px);
+}
+
+/* Estilos para los mensajes flash */
+.alert {
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+} 

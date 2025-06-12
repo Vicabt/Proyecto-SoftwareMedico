@@ -1,0 +1,23 @@
+.btn-action {
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    border-radius: 6px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn-action i {
+    font-size: 0.875rem;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+
+.d-flex.gap-2 {
+    gap: 8px !important;
+} 

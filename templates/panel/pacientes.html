@@ -1,0 +1,655 @@
+{% extends 'panel/base_panel.html' %}
+{% block content %}
+<main class="container-fluid mt-4 flex-grow-1">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+        <h1 class="h3 fw-bold text-secondary">Gestión de Pacientes</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoPacienteModal">
+                <i class="fas fa-user-plus me-1"></i> Nuevo Paciente
+            </button>
+            <a href="{{ url_for('exportar_pacientes_pdf', busqueda=busqueda) }}" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+            </a>
+            <a href="{{ url_for('exportar_pacientes_excel', busqueda=busqueda) }}" class="btn btn-sm btn-outline-success ms-2">
+                <i class="fas fa-file-excel me-1"></i> Exportar Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros de búsqueda -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('pacientes') }}" id="searchForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" name="busqueda" placeholder="Buscar por nombre, documento, correo..." value="{{ busqueda }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-1"></i> Filtrar
+                        </button>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('pacientes') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-undo me-1"></i> Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de pacientes -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" style="width: 5%">#ID</th>
+                            <th scope="col" style="width: 12%">Nombres</th>
+                            <th scope="col" style="width: 12%">Apellidos</th>
+                            <th scope="col" style="width: 10%">Tipo Doc.</th>
+                            <th scope="col" style="width: 10%">N° Doc.</th>
+                            <th scope="col" style="width: 10%">Teléfono</th>
+                            <th scope="col" style="width: 12%">Correo</th>
+                            <th scope="col" style="width: 12%">EPS</th>
+                            <th scope="col" style="width: 5%">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pacientes %}
+                        <tr>
+                            <td>P{{ "%03d"|format(p.id) }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='img/panel/perfil.png') }}" class="rounded-circle me-2" width="40" height="40" alt="Foto">
+                                    <div>
+                                        <div class="fw-medium">{{ p.nombre }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ p.apellido }}</td>
+                            <td>{{ p.tipo_documento }}</td>
+                            <td>{{ p.numero_documento }}</td>
+                            <td>{{ p.telefono }}</td>
+                            <td>{{ p.correo }}</td>
+                            <td>{{ p.eps }}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary btn-action" title="Ver detalles" data-bs-toggle="modal" data-bs-target="#verPacienteModal{{ p.id }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-success btn-action text-white" title="Editar" data-bs-toggle="modal" data-bs-target="#editarPacienteModal{{ p.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('eliminar_paciente', id=p.id) }}">
+                                        <button type="submit" class="btn btn-danger btn-action" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if pagination.pages > 1 %}
+            <nav aria-label="Paginación de pacientes" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <!-- Primera página -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('pacientes', page=1, busqueda=busqueda) }}" aria-label="Primera">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    
+                    <!-- Anterior -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('pacientes', page=pagination.prev_num, busqueda=busqueda) }}" aria-label="Anterior">
+                            <span aria-hidden="true">&lsaquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Números de página -->
+                    {% for page in pagination.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                        {% if page %}
+                            <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('pacientes', page=page, busqueda=busqueda) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Siguiente -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('pacientes', page=pagination.next_num, busqueda=busqueda) }}" aria-label="Siguiente">
+                            <span aria-hidden="true">&rsaquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Última página -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('pacientes', page=pagination.pages, busqueda=busqueda) }}" aria-label="Última">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+<!-- Modal para Nuevo Paciente -->
+<div class="modal fade" id="nuevoPacienteModal" tabindex="-1" aria-labelledby="nuevoPacienteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="nuevoPacienteModalLabel">Registrar Nuevo Paciente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('agregar_paciente') }}">
+                <div class="modal-body">
+                    <!-- Información Básica -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-user me-2"></i>Información Básica</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="nombrePaciente" class="form-label">Nombres</label>
+                            <input type="text" class="form-control border border-primary rounded" id="nombrePaciente" name="nombrePaciente" placeholder="Ingrese los nombres" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="apellidosPaciente" class="form-label">Apellidos</label>
+                            <input type="text" class="form-control border border-primary rounded" id="apellidosPaciente" name="apellidosPaciente" placeholder="Ingrese los apellidos" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="sexo" class="form-label">Sexo</label>
+                            <select class="form-select border border-primary rounded" id="sexo" name="sexo" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
+                                <option value="O">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="fechaNacimiento" class="form-label">Fecha de Nacimiento</label>
+                            <input type="date" class="form-control border border-primary rounded" id="fechaNacimiento" name="fechaNacimiento" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="grupoSanguineo" class="form-label">Grupo Sanguíneo</label>
+                            <select class="form-select border border-primary rounded" id="grupoSanguineo" name="grupoSanguineo">
+                                <option value="" selected disabled>Seleccionar</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Documento de Identidad -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-id-card me-2"></i>Documento de Identidad</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="tipoDocumento" class="form-label">Tipo de Documento</label>
+                            <select class="form-select border border-primary rounded" id="tipoDocumento" name="tipoDocumento" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                                <option value="CC">Cédula de Ciudadanía</option>
+                                <option value="CE">Cédula de Extranjería</option>
+                                <option value="TI">Tarjeta de Identidad</option>
+                                <option value="RC">Registro Civil de Nacimiento</option>
+                                <option value="NUIP">NUIP</option>
+                                <option value="PA">Pasaporte</option>
+                                <option value="PEP">Permiso Especial de Permanencia</option>
+                                <option value="MS">Menor sin Identificación</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="numeroDocumento" class="form-label">Número de Documento</label>
+                            <input type="text" class="form-control border border-primary rounded" id="numeroDocumento" name="numeroDocumento" placeholder="Ingrese el número de documento" required>
+                        </div>
+                    </div>
+                    <!-- Contacto -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-phone me-2"></i>Contacto</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="telefonoPaciente" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control border border-primary rounded" id="telefonoPaciente" name="telefonoPaciente" placeholder="Ingrese el teléfono" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="emailPaciente" class="form-label">Email</label>
+                            <input type="email" class="form-control border border-primary rounded" id="emailPaciente" name="emailPaciente" placeholder="Ingrese el correo electrónico" required>
+                        </div>
+                    </div>
+                    <!-- Ubicación -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-map-marker-alt me-2"></i>Ubicación</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="direccionPaciente" class="form-label">Dirección</label>
+                            <input type="text" class="form-control border border-primary rounded" id="direccionPaciente" name="direccionPaciente" placeholder="Ingrese la dirección" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="departamento" class="form-label">Departamento</label>
+                            <select class="form-select border border-primary rounded" id="departamento" name="departamento" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                                {% for dep in departamentos %}
+                                <option value="{{ dep.id }}">{{ dep.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ciudad" class="form-label">Ciudad</label>
+                            <select class="form-select border border-primary rounded" id="ciudad" name="ciudad" required>
+                                <option value="" selected disabled>Seleccionar</option>
+                                <!-- Las ciudades se cargarán dinámicamente según el departamento -->
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Seguridad Social -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-hospital me-2"></i>Seguridad Social</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="eps" class="form-label">EPS</label>
+                            <select class="form-select border border-primary rounded" id="eps" name="eps" required>
+                                <option value="" selected disabled>Seleccionar EPS</option>
+                                {% for eps in lista_eps %}
+                                <option value="{{ eps.codigo }}">{{ eps.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tipoRegimen" class="form-label">Tipo de Régimen</label>
+                            <select class="form-select border border-primary rounded" id="tipoRegimen" name="tipoRegimen">
+                                <option value="" selected disabled>Seleccionar</option>
+                                <option value="Contributivo">Contributivo</option>
+                                <option value="Subsidiado">Subsidiado</option>
+                                <option value="Especial">Especial</option>
+                                <option value="Vinculado">Vinculado</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Contacto de Emergencia -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-user-shield me-2"></i>Contacto de Emergencia</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="contactoEmergencia" class="form-label">Contacto de Emergencia</label>
+                            <input type="text" class="form-control border border-primary rounded" id="contactoEmergencia" name="contactoEmergencia" placeholder="Ingrese el contacto de emergencia" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="telefonoEmergencia" class="form-label">Teléfono de Emergencia</label>
+                            <input type="tel" class="form-control border border-primary rounded" id="telefonoEmergencia" name="telefonoEmergencia" placeholder="Ingrese el teléfono de emergencia" required>
+                        </div>
+                    </div>
+                    <!-- Estado Civil y Ocupación -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-info-circle me-2"></i>Información Adicional</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="estadoCivil" class="form-label">Estado Civil</label>
+                            <select class="form-select border border-primary rounded" id="estadoCivil" name="estadoCivil">
+                                <option value="" selected disabled>Seleccionar</option>
+                                <option value="soltero">Soltero/a</option>
+                                <option value="casado">Casado/a</option>
+                                <option value="divorciado">Divorciado/a</option>
+                                <option value="viudo">Viudo/a</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ocupacion" class="form-label">Ocupación</label>
+                            <input type="text" class="form-control border border-primary rounded" id="ocupacion" name="ocupacion" placeholder="Ingrese la ocupación">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar paciente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales para Editar Paciente -->
+{% for p in pacientes %}
+<div class="modal fade" id="editarPacienteModal{{ p.id }}" tabindex="-1" aria-labelledby="editarPacienteModalLabel{{ p.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editarPacienteModalLabel{{ p.id }}">Editar Paciente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('editar_paciente', id=p.id) }}">
+                <div class="modal-body">
+                    <!-- Información Básica -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-user me-2"></i>Información Básica</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editNombrePaciente{{ p.id }}" class="form-label">Nombres</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editNombrePaciente{{ p.id }}" name="editNombrePaciente" value="{{ p.nombre }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editApellidosPaciente{{ p.id }}" class="form-label">Apellidos</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editApellidosPaciente{{ p.id }}" name="editApellidosPaciente" value="{{ p.apellido }}" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="editSexo{{ p.id }}" class="form-label">Sexo</label>
+                            <select class="form-select border border-primary rounded" id="editSexo{{ p.id }}" name="editSexo" required>
+                                <option value="" disabled>Seleccionar</option>
+                                <option value="M" {% if p.sexo == 'M' %}selected{% endif %}>Masculino</option>
+                                <option value="F" {% if p.sexo == 'F' %}selected{% endif %}>Femenino</option>
+                                <option value="O" {% if p.sexo == 'O' %}selected{% endif %}>Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editFechaNacimiento{{ p.id }}" class="form-label">Fecha de Nacimiento</label>
+                            <input type="date" class="form-control border border-primary rounded" id="editFechaNacimiento{{ p.id }}" name="editFechaNacimiento" value="{{ p.fecha_nacimiento }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editGrupoSanguineo{{ p.id }}" class="form-label">Grupo Sanguíneo</label>
+                            <select class="form-select border border-primary rounded" id="editGrupoSanguineo{{ p.id }}" name="editGrupoSanguineo">
+                                <option value="" disabled>Seleccionar</option>
+                                <option value="A+" {% if p.grupo_sanguineo == 'A+' %}selected{% endif %}>A+</option>
+                                <option value="A-" {% if p.grupo_sanguineo == 'A-' %}selected{% endif %}>A-</option>
+                                <option value="B+" {% if p.grupo_sanguineo == 'B+' %}selected{% endif %}>B+</option>
+                                <option value="B-" {% if p.grupo_sanguineo == 'B-' %}selected{% endif %}>B-</option>
+                                <option value="AB+" {% if p.grupo_sanguineo == 'AB+' %}selected{% endif %}>AB+</option>
+                                <option value="AB-" {% if p.grupo_sanguineo == 'AB-' %}selected{% endif %}>AB-</option>
+                                <option value="O+" {% if p.grupo_sanguineo == 'O+' %}selected{% endif %}>O+</option>
+                                <option value="O-" {% if p.grupo_sanguineo == 'O-' %}selected{% endif %}>O-</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Documento de Identidad -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-id-card me-2"></i>Documento de Identidad</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editTipoDocumento{{ p.id }}" class="form-label">Tipo de Documento</label>
+                            <select class="form-select border border-primary rounded" id="editTipoDocumento{{ p.id }}" name="editTipoDocumento" required>
+                                <option value="" disabled>Seleccionar</option>
+                                <option value="CC" {% if p.tipo_documento == 'CC' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                                <option value="CE" {% if p.tipo_documento == 'CE' %}selected{% endif %}>Cédula de Extranjería</option>
+                                <option value="TI" {% if p.tipo_documento == 'TI' %}selected{% endif %}>Tarjeta de Identidad</option>
+                                <option value="RC" {% if p.tipo_documento == 'RC' %}selected{% endif %}>Registro Civil de Nacimiento</option>
+                                <option value="NUIP" {% if p.tipo_documento == 'NUIP' %}selected{% endif %}>NUIP</option>
+                                <option value="PA" {% if p.tipo_documento == 'PA' %}selected{% endif %}>Pasaporte</option>
+                                <option value="PEP" {% if p.tipo_documento == 'PEP' %}selected{% endif %}>Permiso Especial de Permanencia</option>
+                                <option value="MS" {% if p.tipo_documento == 'MS' %}selected{% endif %}>Menor sin Identificación</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editNumeroDocumento{{ p.id }}" class="form-label">Número de Documento</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editNumeroDocumento{{ p.id }}" name="editNumeroDocumento" value="{{ p.numero_documento }}" required>
+                        </div>
+                    </div>
+                    <!-- Contacto -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-phone me-2"></i>Contacto</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editTelefonoPaciente{{ p.id }}" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control border border-primary rounded" id="editTelefonoPaciente{{ p.id }}" name="editTelefonoPaciente" value="{{ p.telefono }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editEmailPaciente{{ p.id }}" class="form-label">Email</label>
+                            <input type="email" class="form-control border border-primary rounded" id="editEmailPaciente{{ p.id }}" name="editEmailPaciente" value="{{ p.correo }}" required>
+                        </div>
+                    </div>
+                    <!-- Ubicación -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-map-marker-alt me-2"></i>Ubicación</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="editDireccionPaciente{{ p.id }}" class="form-label">Dirección</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editDireccionPaciente{{ p.id }}" name="editDireccionPaciente" value="{{ p.direccion }}" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editDepartamento{{ p.id }}" class="form-label">Departamento</label>
+                            <select class="form-select border border-primary rounded" id="editDepartamento{{ p.id }}" name="editDepartamento" required>
+                                <option value="" disabled>Seleccionar</option>
+                                {% for dep in departamentos %}
+                                <option value="{{ dep.id }}" {% if p.departamento_id == dep.id %}selected{% endif %}>{{ dep.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editCiudad{{ p.id }}" class="form-label">Ciudad</label>
+                            <select class="form-select border border-primary rounded" id="editCiudad{{ p.id }}" name="editCiudad" required>
+                                <option value="" disabled>Seleccionar</option>
+                                {% if p.ciudad_id %}
+                                <option value="{{ p.ciudad_id }}" selected>{{ p.ciudad.nombre }}</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Seguridad Social -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-briefcase-medical me-2"></i>Seguridad Social</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editEps{{ p.id }}" class="form-label">EPS</label>
+                            <select class="form-select border border-primary rounded" id="editEps{{ p.id }}" name="editEps" required>
+                                <option value="" disabled>Seleccionar EPS</option>
+                                {% for eps in lista_eps %}
+                                <option value="{{ eps.codigo }}" {% if p.eps == eps.codigo %}selected{% endif %}>{{ eps.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editTipoRegimen{{ p.id }}" class="form-label">Tipo de Régimen</label>
+                            <select class="form-select border border-primary rounded" id="editTipoRegimen{{ p.id }}" name="editTipoRegimen">
+                                <option value="" disabled>Seleccionar</option>
+                                <option value="Contributivo" {% if p.tipo_regimen == 'Contributivo' %}selected{% endif %}>Contributivo</option>
+                                <option value="Subsidiado" {% if p.tipo_regimen == 'Subsidiado' %}selected{% endif %}>Subsidiado</option>
+                                <option value="Vinculado" {% if p.tipo_regimen == 'Vinculado' %}selected{% endif %}>Vinculado</option>
+                                <option value="Especial" {% if p.tipo_regimen == 'Especial' %}selected{% endif %}>Especial</option>
+                                <option value="Otro" {% if p.tipo_regimen == 'Otro' %}selected{% endif %}>Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Contacto de Emergencia -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-user-shield me-2"></i>Contacto de Emergencia</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editContactoEmergencia{{ p.id }}" class="form-label">Contacto de Emergencia</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editContactoEmergencia{{ p.id }}" name="editContactoEmergencia" value="{{ p.contactos_emergencia }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editTelefonoEmergencia{{ p.id }}" class="form-label">Teléfono de Emergencia</label>
+                            <input type="tel" class="form-control border border-primary rounded" id="editTelefonoEmergencia{{ p.id }}" name="editTelefonoEmergencia" value="{{ p.telefono_emergencia }}" required>
+                        </div>
+                    </div>
+                    <!-- Información Adicional -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-info-circle me-2"></i>Información Adicional</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editEstadoCivil{{ p.id }}" class="form-label">Estado Civil</label>
+                            <select class="form-select border border-primary rounded" id="editEstadoCivil{{ p.id }}" name="editEstadoCivil">
+                                <option value="" disabled>Seleccionar</option>
+                                <option value="soltero" {% if p.estado_civil == 'soltero' %}selected{% endif %}>Soltero/a</option>
+                                <option value="casado" {% if p.estado_civil == 'casado' %}selected{% endif %}>Casado/a</option>
+                                <option value="divorciado" {% if p.estado_civil == 'divorciado' %}selected{% endif %}>Divorciado/a</option>
+                                <option value="viudo" {% if p.estado_civil == 'viudo' %}selected{% endif %}>Viudo/a</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editOcupacion{{ p.id }}" class="form-label">Ocupación</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editOcupacion{{ p.id }}" name="editOcupacion" value="{{ p.ocupacion }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Modales para Ver Detalles del Paciente -->
+{% for p in pacientes %}
+<div class="modal fade" id="verPacienteModal{{ p.id }}" tabindex="-1" aria-labelledby="verPacienteModalLabel{{ p.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="verPacienteModalLabel{{ p.id }}">
+                    <i class="fas fa-user me-2"></i>Detalles del Paciente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-3 text-center mb-4">
+                        <img src="{{ url_for('static', filename='img/panel/perfil.png') }}" 
+                             class="rounded-circle img-thumbnail mb-2" 
+                             style="width: 150px; height: 150px;" 
+                             alt="Foto de perfil">
+                        <h5 class="mb-0">{{ p.nombre }} {{ p.apellido }}</h5>
+                        <p class="text-muted">Paciente</p>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row g-3">
+                            <!-- Información Básica -->
+                            <div class="col-md-6">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-primary">
+                                            <i class="fas fa-user me-2"></i>Información Básica
+                                        </h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>Sexo:</strong> {% if p.sexo == 'M' %}Masculino{% elif p.sexo == 'F' %}Femenino{% else %}Otro{% endif %}</li>
+                                            <li><strong>Fecha Nacimiento:</strong> {{ p.fecha_nacimiento }}</li>
+                                            <li><strong>Grupo Sanguíneo:</strong> {{ p.grupo_sanguineo }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Documento de Identidad -->
+                            <div class="col-md-6">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-primary">
+                                            <i class="fas fa-id-card me-2"></i>Documento de Identidad
+                                        </h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>Tipo Documento:</strong> {{ p.tipo_documento }}</li>
+                                            <li><strong>Número:</strong> {{ p.numero_documento }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Contacto -->
+                            <div class="col-md-6">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-primary">
+                                            <i class="fas fa-phone me-2"></i>Contacto
+                                        </h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>Teléfono:</strong> <a href="tel:{{ p.telefono }}" class="text-decoration-none"><i class="fas fa-phone me-1"></i>{{ p.telefono }}</a></li>
+                                            <li><strong>Correo:</strong> <a href="mailto:{{ p.correo }}" class="text-decoration-none"><i class="fas fa-envelope me-1"></i>{{ p.correo }}</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Ubicación -->
+                            <div class="col-md-6">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-primary">
+                                            <i class="fas fa-map-marker-alt me-2"></i>Ubicación
+                                        </h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>Dirección:</strong> {{ p.direccion }}</li>
+                                            <li><strong>Ciudad:</strong> {{ p.ciudad.nombre }}</li>
+                                            <li><strong>Departamento:</strong> {{ p.ciudad.departamento.nombre }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Seguridad Social -->
+                            <div class="col-md-6">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-primary">
+                                            <i class="fas fa-briefcase-medical me-2"></i>Seguridad Social
+                                        </h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>EPS:</strong> {% for eps in lista_eps %}{% if eps.codigo == p.eps %}{{ eps.nombre }}{% endif %}{% endfor %}</li>
+                                            <li><strong>Tipo de Régimen:</strong> {{ p.tipo_regimen }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Emergencia -->
+                            <div class="col-md-6">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-primary">
+                                            <i class="fas fa-user-shield me-2"></i>Contacto de Emergencia
+                                        </h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>Nombre:</strong> {{ p.contactos_emergencia }}</li>
+                                            <li><strong>Teléfono:</strong> {{ p.telefono_emergencia }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Información Adicional -->
+                            <div class="col-md-6">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-primary">
+                                            <i class="fas fa-info-circle me-2"></i>Información Adicional
+                                        </h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>Estado Civil:</strong> {{ p.estado_civil }}</li>
+                                            <li><strong>Ocupación:</strong> {{ p.ocupacion }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#editarPacienteModal{{ p.id }}" data-bs-dismiss="modal">
+                    <i class="fas fa-edit me-1"></i>Editar Paciente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</body>
+</html>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pacientes.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/panel/styles.css') }}">
+{% endblock %}

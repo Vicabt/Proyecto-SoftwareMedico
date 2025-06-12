@@ -1,0 +1,190 @@
+{% extends 'panel/base_panel.html' %}
+{% block content %}
+<main class="container-fluid mt-4 flex-grow-1">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+        <h1 class="h3 fw-bold text-secondary">Configuración del Sitio</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{{ url_for('panel') }}" class="btn btn-sm btn-primary">
+                <i class="fas fa-arrow-left me-1"></i> Volver al Panel
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Columna de Identidad Visual (Logo y Color) -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header">
+                    <i class="fas fa-palette me-2"></i> Identidad Visual
+                </div>
+                <div class="card-body text-center">
+                    <p class="text-muted small">Logo de la Empresa</p>
+                    <div class="position-relative d-inline-block mb-4">
+                        <img src="{{ url_for('static', filename=config.logo or 'img/pagina_principal/logo-color.png')}}" alt="Logo por defecto" class="img-thumbnail" style="max-width: 200px; max-height: 100px; object-fit: contain;">
+                        <button type="button" class="btn btn-sm btn-primary rounded-circle position-absolute top-0 start-100 translate-middle" 
+                               data-bs-toggle="modal" data-bs-target="#modalCambiarLogo" title="Cambiar logo">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna de Configuración General -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-cogs me-2"></i> Configuración General
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnEditar">
+                        <i class="fas fa-pencil-alt me-1"></i> Editar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('configuracion') }}" method="post" enctype="multipart/form-data">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="nombre_empresa" class="form-label">Nombre de la Empresa</label>
+                                <input type="text" class="form-control" id="nombre_empresa" name="nombre_empresa" value="{{ config.nombre_empresa }}" placeholder="Ingresa el nombre de tu empresa" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="nit_empresa" class="form-label">NIT de la Empresa</label>
+                                <input type="text" class="form-control" id="nit_empresa" name="nit_empresa" value="{{ config.nit_empresa }}" placeholder="Ingresa el NIT de tu empresa" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="registro_sanitario" class="form-label">Registro Sanitario</label>
+                                <input type="text" class="form-control" id="registro_sanitario" name="registro_sanitario" value="{{ config.registro_sanitario }}" placeholder="Ingresa el registro sanitario" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="slogan" class="form-label">Slogan o Descripción Corta</label>
+                                <input type="text" class="form-control" id="slogan" name="slogan" value="{{ config.slogan }}" placeholder="Ingresa un slogan o descripción corta" readonly>
+                                <div class="form-text">Aparecerá en lugares como la cabecera o el pie de página.</div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="favicon" class="form-label">Favicon del Sitio</label>
+                                <div class="mb-2">
+                                    <img src="{{ url_for('static', filename=config.favicon or 'img/pagina_principal/icono.ico') }}" alt="Favicon actual" style="width: 32px; height: 32px;">
+                                </div>
+                                <input type="file" class="form-control" id="favicon" name="favicon" accept=".ico, image/png, image/svg+xml">
+                                <div class="form-text">Formatos permitidos: ICO, PNG, SVG. Tamaño recomendado: 32x32px o 16x16px.</div>
+                            </div>
+                        </div>
+                        <div class="text-end mt-4">
+                            <button type="submit" class="btn btn-primary d-none" id="btnGuardar">Guardar Cambios</button>
+                            <button type="button" class="btn btn-secondary d-none" id="btnCancelar">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal para cambiar el logo -->
+<div class="modal fade" id="modalCambiarLogo" tabindex="-1" aria-labelledby="modalCambiarLogoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCambiarLogoLabel">Cambiar Logo de la Empresa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form action="{{ url_for('configuracion') }}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="logo" class="form-label">Seleccionar nuevo logo</label>
+                        <input type="file" class="form-control" id="logo" name="logo" accept="image/png, image/jpeg, image/svg+xml" required>
+                        <div class="form-text">Formatos permitidos: PNG, JPG, SVG. Recomendado: fondo transparente.</div>
+                    </div>
+                    <div class="text-center mt-3" id="previewContainer" style="display: none;">
+                        <p>Vista previa:</p>
+                        <img id="preview" src="#" alt="Vista previa del logo" class="img-thumbnail" style="max-height: 150px; background-color: #f8f9fa;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Logo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para la interactividad -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- Lógica para Editar/Guardar/Cancelar ---
+    const btnEditar = document.getElementById('btnEditar');
+    const btnGuardar = document.getElementById('btnGuardar');
+    const btnCancelar = document.getElementById('btnCancelar');
+    
+    // Inputs del formulario que se pueden editar
+    const formInputs = [
+        document.getElementById('nombre_empresa'),
+        document.getElementById('nit_empresa'),
+        document.getElementById('registro_sanitario'),
+        document.getElementById('slogan'),
+    ];
+
+    // Almacenar valores originales al cargar la página
+    const originalValues = {};
+    formInputs.forEach(input => {
+        originalValues[input.id] = input.type === 'color' ? input.value : input.value.trim();
+    });
+
+    btnEditar.addEventListener('click', () => {
+        formInputs.forEach(input => {
+            input.readOnly = false;
+            input.disabled = false;
+        });
+        btnEditar.classList.add('d-none');
+        btnGuardar.classList.remove('d-none');
+        btnCancelar.classList.remove('d-none');
+    });
+
+    btnCancelar.addEventListener('click', () => {
+        formInputs.forEach(input => {
+            input.readOnly = true;
+            input.disabled = true;
+            // Restaurar valor original
+            input.value = originalValues[input.id];
+            // Disparar evento de input para que la vista previa del color se actualice
+            if (input.type === 'color') {
+                input.dispatchEvent(new Event('input'));
+            }
+        });
+        btnEditar.classList.remove('d-none');
+        btnGuardar.classList.add('d-none');
+        btnCancelar.classList.add('d-none');
+    });
+
+    // --- Lógica para la previsualización del logo en el modal ---
+    const logoInput = document.getElementById('logo');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('preview');
+
+    logoInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            previewContainer.style.display = 'block';
+            
+            reader.onload = function(e) {
+                previewImage.setAttribute('src', e.target.result);
+            }
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,270 @@
+{% extends 'panel/base_panel.html' %}
+{% block content %}
+<main class="container-fluid mt-4 flex-grow-1">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+        <h1 class="h3 fw-bold text-secondary">Mi Cuenta</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{{ url_for('panel') }}" class="btn btn-sm btn-primary">
+                <i class="fas fa-arrow-left me-1"></i> Volver al Panel
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center">
+                    <div class="position-relative d-inline-block mb-3">
+                        {% if usuario.foto %}
+                            <img src="{{ url_for('static', filename=usuario.foto) }}" alt="Foto de Perfil" class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='img/panel/perfil.png') }}" alt="Foto de Perfil" class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                        {% endif %}
+                        <button type="button" class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0" 
+                               data-bs-toggle="modal" data-bs-target="#modalCambiarFoto" title="Cambiar foto de perfil">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+                    <h5 class="fw-bold mb-1">{{ usuario.nombre }}</h5>
+                    <p class="text-muted mb-3">{{ usuario.correo }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-user-edit me-2"></i> Información Personal
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnEditar">
+                        <i class="fas fa-pencil-alt me-1"></i> Editar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('actualizar_perfil') }}" method="post">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="nombre" class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" value="{{ usuario.nombre }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="apellido" class="form-label">Apellido</label>
+                                <input type="text" class="form-control" id="apellido" name="apellido" value="{{ usuario.apellido or '' }}" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="email" class="form-label">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ usuario.correo }}" readonly disabled>
+                                <div class="form-text">El correo electrónico no se puede modificar</div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="telefono" class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" id="telefono" name="telefono" value="{{ usuario.telefono or '' }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="ciudad" class="form-label">Ciudad</label>
+                                <input type="text" class="form-control" id="ciudad" name="ciudad" value="{{ usuario.ciudad or '' }}" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="direccion" class="form-label">Dirección</label>
+                                <input type="text" class="form-control" id="direccion" name="direccion" value="{{ usuario.direccion or '' }}" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="tipo_documento" class="form-label">Tipo de Documento</label>
+                                <select class="form-select" id="tipo_documento" name="tipo_documento" disabled>
+                                    <option value="" {% if not usuario.tipo_documento %}selected{% endif %}>Seleccionar</option>
+                                    <option value="CC" {% if usuario.tipo_documento == 'CC' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                                    <option value="CE" {% if usuario.tipo_documento == 'CE' %}selected{% endif %}>Cédula de Extranjería</option>
+                                    <option value="TI" {% if usuario.tipo_documento == 'TI' %}selected{% endif %}>Tarjeta de Identidad</option>
+                                    <option value="PA" {% if usuario.tipo_documento == 'PA' %}selected{% endif %}>Pasaporte</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="numero_documento" class="form-label">Número de Documento</label>
+                                <input type="text" class="form-control" id="numero_documento" name="numero_documento" value="{{ usuario.numero_documento or '' }}" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="fecha_registro" class="form-label">Fecha de Registro</label>
+                                <input type="text" class="form-control" id="fecha_registro" value="{{ usuario.fecha_registro.strftime('%d/%m/%Y') if usuario.fecha_registro else '' }}" readonly disabled>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary d-none" id="btnGuardar">Guardar Cambios</button>
+                            <button type="button" class="btn btn-secondary d-none" id="btnCancelar">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm border-0">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-lock me-2"></i> Cambiar Contraseña
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#collapsePassword">
+                        <i class="fas fa-chevron-down me-1"></i> Mostrar
+                    </button>
+                </div>
+                <div class="collapse" id="collapsePassword">
+                    <div class="card-body">
+                        <form action="{{ url_for('cambiar_password') }}" method="post">
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label for="passwordActual" class="form-label">Contraseña Actual</label>
+                                    <input type="password" class="form-control" id="passwordActual" name="passwordActual" required>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="password" class="form-label">Nueva Contraseña</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                    <div class="form-text">Mínimo 6 caracteres</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="passwordConfirm" class="form-label">Confirmar Contraseña</label>
+                                    <input type="password" class="form-control" id="passwordConfirm" name="passwordConfirm" required>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal para cambiar foto de perfil -->
+<div class="modal fade" id="modalCambiarFoto" tabindex="-1" aria-labelledby="modalCambiarFotoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCambiarFotoLabel">Cambiar Foto de Perfil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form action="{{ url_for('cambiar_foto_perfil') }}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="foto" class="form-label">Seleccionar nueva imagen</label>
+                        <input type="file" class="form-control" id="foto" name="foto" accept="image/*" required>
+                        <div class="form-text">Formatos permitidos: JPG, JPEG, PNG, GIF</div>
+                    </div>
+                    <div class="text-center mt-3" id="previewContainer" style="display: none;">
+                        <p>Vista previa:</p>
+                        <img id="preview" src="#" alt="Vista previa" class="img-thumbnail" style="max-height: 200px;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Manejo de edición de perfil
+        const btnEditar = document.getElementById('btnEditar');
+        const btnGuardar = document.getElementById('btnGuardar');
+        const btnCancelar = document.getElementById('btnCancelar');
+        
+        // Todos los campos editables
+        const nombreInput = document.getElementById('nombre');
+        const apellidoInput = document.getElementById('apellido');
+        const telefonoInput = document.getElementById('telefono');
+        const ciudadInput = document.getElementById('ciudad');
+        const direccionInput = document.getElementById('direccion');
+        const tipoDocumentoSelect = document.getElementById('tipo_documento');
+        const numeroDocumentoInput = document.getElementById('numero_documento');
+        
+        // Guardar valores originales para restaurar si se cancela
+        const originalValues = {
+            nombre: nombreInput.value,
+            apellido: apellidoInput.value,
+            telefono: telefonoInput.value,
+            ciudad: ciudadInput.value,
+            direccion: direccionInput.value,
+            tipoDocumento: tipoDocumentoSelect.value,
+            numeroDocumento: numeroDocumentoInput.value
+        };
+        
+        btnEditar.addEventListener('click', function() {
+            // Habilitar todos los campos para edición
+            nombreInput.readOnly = false;
+            apellidoInput.readOnly = false;
+            telefonoInput.readOnly = false;
+            ciudadInput.readOnly = false;
+            direccionInput.readOnly = false;
+            tipoDocumentoSelect.disabled = false;
+            numeroDocumentoInput.readOnly = false;
+            
+            // Enfocar el primer campo
+            nombreInput.focus();
+            
+            // Mostrar botones de guardar/cancelar
+            btnGuardar.classList.remove('d-none');
+            btnCancelar.classList.remove('d-none');
+            btnEditar.classList.add('d-none');
+        });
+        
+        btnCancelar.addEventListener('click', function() {
+            // Deshabilitar todos los campos
+            nombreInput.readOnly = true;
+            apellidoInput.readOnly = true;
+            telefonoInput.readOnly = true;
+            ciudadInput.readOnly = true;
+            direccionInput.readOnly = true;
+            tipoDocumentoSelect.disabled = true;
+            numeroDocumentoInput.readOnly = true;
+            
+            // Restaurar valores originales
+            nombreInput.value = originalValues.nombre;
+            apellidoInput.value = originalValues.apellido;
+            telefonoInput.value = originalValues.telefono;
+            ciudadInput.value = originalValues.ciudad;
+            direccionInput.value = originalValues.direccion;
+            tipoDocumentoSelect.value = originalValues.tipoDocumento;
+            numeroDocumentoInput.value = originalValues.numeroDocumento;
+            
+            // Ocultar botones de guardar/cancelar
+            btnGuardar.classList.add('d-none');
+            btnCancelar.classList.add('d-none');
+            btnEditar.classList.remove('d-none');
+        });
+        
+        // Vista previa de la imagen
+        const inputFoto = document.getElementById('foto');
+        const preview = document.getElementById('preview');
+        const previewContainer = document.getElementById('previewContainer');
+        
+        inputFoto.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                
+                reader.readAsDataURL(this.files[0]);
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

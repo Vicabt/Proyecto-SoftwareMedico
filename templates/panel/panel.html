@@ -1,0 +1,92 @@
+{% extends 'panel/base_panel.html' %}
+{% block content %}
+<main class="container-fluid mt-4 flex-grow-1">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+        <h1 class="h3 fw-bold text-secondary">Resumen Diario</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{{ url_for('cita') }}" type="button" class="btn btn-sm btn-primary me-1" onclick="window.location.href='citas.html?action=new'"><i class="fas fa-calendar-plus me-1"></i> Nueva Cita</a>
+            <a href="{{ url_for('pacientes') }}" type="button" class="btn btn-sm btn-outline-primary me-1" onclick="window.location.href='pacientes.html?action=new'"><i class="fas fa-user-plus me-1"></i> Nuevo Paciente</a>
+            <a href="{{ url_for('medico') }}" type="button" class="btn btn-sm btn-primary me-1" onclick="window.location.href='medicos.html?action=new'"><i class="fas fa-user-md fa-fw me-1"></i> Nuevo Medico</a>
+            <a href="{{ url_for('historia') }}" type="button" class="btn btn-sm btn-outline-primary me-1" onclick="window.location.href='historia-clinica.html?action=new'"><i class="fas fa-notes-medical me-1"></i> Nueva Historia</a>
+            <a href="{{ url_for('factura') }}" type="button" class="btn btn-sm btn-primary" onclick="window.location.href='facturacion.html?action=new'"><i class="fas fa-file-invoice-dollar me-1"></i> Nueva Factura</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header">
+                   <i class="fas fa-calendar-day me-2"></i> Agenda de Hoy
+                </div>
+                <div class="card-body">
+                     <div class="table-responsive">
+                         <table class="table table-borderless table-striped table-sm small align-middle">
+                             <thead>
+                                 <tr class="text-muted">
+                                     <th>Hora</th>
+                                     <th>Paciente</th>
+                                     <th>Médico</th>
+                                     <th>Motivo</th>
+                                     <th>Estado</th>
+                                 </tr>
+                             </thead>
+                             <tbody>
+                                 {% if citas_hoy %}
+                                     {% for cita, paciente, medico in citas_hoy %}
+                                         <tr>
+                                             <td class="fw-medium">{{ cita.hora.strftime('%H:%M') }}</td>
+                                             <td>{{ paciente.nombre }} {{ paciente.apellido }}</td>
+                                             <td>{{ medico.nombre }} {{ medico.apellido }}</td>
+                                             <td>{{ cita.motivo }}</td>
+                                             <td>
+                                                 {% if cita.estado == 'confirmado' %}
+                                                     <span class="badge rounded-pill bg-success-subtle text-success-emphasis">Confirmado</span>
+                                                 {% elif cita.estado == 'en_sala' %}
+                                                     <span class="badge rounded-pill bg-info-subtle text-info-emphasis">En Sala</span>
+                                                 {% elif cita.estado == 'pendiente' %}
+                                                     <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis">Pendiente Conf.</span>
+                                                 {% elif cita.estado == 'cancelado' %}
+                                                     <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">Cancelado</span>
+                                                 {% elif cita.estado == 'completado' or cita.estado == 'atendido' %}
+                                                     <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">Completado</span>
+                                                 {% else %}
+                                                     <span class="badge rounded-pill bg-dark-subtle text-dark-emphasis">{{ cita.estado }}</span>
+                                                 {% endif %}
+                                             </td>
+                                         </tr>
+                                     {% endfor %}
+                                 {% else %}
+                                     <tr>
+                                         <td colspan="5" class="text-center">No hay citas programadas para hoy</td>
+                                     </tr>
+                                 {% endif %}
+                             </tbody>
+                         </table>
+                     </div>
+                     <div class="text-center mt-2">
+                         <a href="{{ url_for('cita') }}" class="btn btn-sm btn-outline-primary">Ver Agenda Completa <i class="fas fa-arrow-right ms-1"></i></a>
+                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center">
+                     <i class="fas fa-users fa-2x text-info mb-3"></i>
+                     <h6 class="text-muted mb-1 small text-uppercase">Pacientes Registrados</h6>
+                     <p class="display-6 fw-bold text-info mb-0">{{ total_pacientes }}</p>
+                </div>
+            </div>
+             <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center">
+                     <i class="fas fa-user-md fa-2x text-success mb-3"></i>
+                     <h6 class="text-muted mb-1 small text-uppercase">Médicos Registrados</h6>
+                     <p class="display-6 fw-bold text-success mb-0">{{ total_medicos }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'pagina_principal/base.html' %}
+{% block content %}
+
+<section id="wavyTimeline" class="wavy-timeline-section overflow-hidden">
+    <div class="container py-5 py-lg-6">
+        <div class="row text-center mb-5 mb-lg-6">
+            <div class="col-md-9 mx-auto">
+                <h2 class="display-5 fw-bold mb-3" style="color: #2651a6;">Nuestra Esencia</h2>
+                <p class="lead text-muted">Los principios que guían cada paso que damos.</p>
+            </div>
+        </div>
+        <div class="timeline-wave-container">
+
+            <div class="timeline-wave-item item-left animate-wave-scroll">
+                 <div class="row gx-0 align-items-stretch">
+                    <div class="col-lg-6 timeline-content-col order-lg-1 d-flex">
+                        <div class="timeline-content-wave flex-grow-1 p-4 p-lg-5 shadow-sm fade-in-left">
+                            <h3 class="fw-semibold mb-3">Propósito Definido: Misión</h3>
+                            <p class="text-secondary mb-0">Nacimos para simplificar la gestión médica. Creamos herramientas digitales intuitivas y accesibles que liberan a los profesionales para que se centren en el cuidado excepcional del paciente.</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 timeline-image-col order-lg-2 d-flex">
+                         <div class="timeline-image-wave flex-grow-1 fade-in-right">
+                             <img src="{{ url_for('static', filename='img/pagina_principal/mision.png')}}" alt="Equipo discutiendo ideas" class="img-fluid w-100 h-100 object-fit-cover rounded-4 shadow">
+                         </div>
+                     </div>
+                </div>
+                <div class="timeline-wave-dot">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+            </div>
+
+            <div class="timeline-wave-item item-right animate-wave-scroll">
+                 <div class="row gx-0 align-items-stretch">
+                     <div class="col-lg-6 timeline-image-col order-lg-1 d-flex">
+                         <div class="timeline-image-wave flex-grow-1 fade-in-left">
+                              <img src="{{ url_for('static', filename='img/pagina_principal/vision.png')}}" alt="Vista futurista de tecnología médica" class="img-fluid w-100 h-100 object-fit-cover rounded-4 shadow">
+                         </div>
+                     </div>
+                    <div class="col-lg-6 timeline-content-col order-lg-2 d-flex">
+                        <div class="timeline-content-wave flex-grow-1 p-4 p-lg-5 shadow-sm fade-in-right">
+                             <h3 class="fw-semibold mb-3">Mirando al Futuro: Visión</h3>
+                            <p class="text-secondary mb-0">Aspiramos a ser el referente digital en salud para Latinoamérica, impulsando una atención médica más eficiente, humana y conectada a través de tecnología que realmente marca la diferencia.</p>
+                        </div>
+                    </div>
+                </div>
+                 <div class="timeline-wave-dot">
+                    <i class="fas fa-binoculars"></i>
+                 </div>
+            </div>
+
+             <div class="timeline-wave-item item-left animate-wave-scroll">
+                 <div class="row gx-0 align-items-stretch">
+                    <div class="col-lg-6 timeline-content-col order-lg-1 d-flex">
+                        <div class="timeline-content-wave flex-grow-1 p-4 p-lg-5 shadow-sm fade-in-left">
+                            <h3 class="fw-semibold mb-3">Nuestros Pilares: Valores</h3>
+                            <ul class="list-unstyled d-grid gap-2 mb-0 text-secondary">
+                                <li><i class="fas fa-puzzle-piece me-2" style="color: #2651a6;"></i> Simplicidad y Claridad</li>
+                                <li><i class="fas fa-user-shield me-2" style="color: #2651a6;"></i> Confianza y Transparencia</li>
+                                <li><i class="fas fa-people-arrows me-2" style="color: #2651a6;"></i> Cercanía y Soporte</li>
+                                <li><i class="fas fa-rocket me-2" style="color: #2651a6;"></i> Innovación con Propósito</li>
+                                <li><i class="fas fa-handshake-angle me-2" style="color: #2651a6;"></i> Compromiso Genuino</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 timeline-image-col order-lg-2 d-flex">
+                         <div class="timeline-image-wave flex-grow-1 fade-in-right">
+                             <img src="{{ url_for('static', filename='img/pagina_principal/valores.png')}}" alt="Manos formando un círculo de unidad" class="img-fluid w-100 h-100 object-fit-cover rounded-4 shadow">
+                         </div>
+                     </div>
+                </div>
+                <div class="timeline-wave-dot">
+                    <i class="fas fa-heart-circle-check"></i>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+{% endblock %}
