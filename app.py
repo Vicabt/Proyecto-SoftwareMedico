@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, session, redirect, url_for, flash, jsonify, make_response, send_file
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from model import db, usuario, paciente as Paciente, medico as Medico, cita as Cita, historia_clinica, factura as Factura, departamento, universidad, Cie10
-from datetime import datetime
+from model import db, usuario, paciente as Paciente, medico as Medico, cita as Cita, historia_clinica, factura as Factura, departamento, universidad, servicio as Servicio, cie10
+from datetime import datetime, timedelta
 from auth import init_auth_routes, obtener_configuracion, guardar_configuracion
 import os
 from reportlab.lib import colors
@@ -14,16 +13,22 @@ from io import BytesIO
 from constantes import ESPECIALIDADES
 import matplotlib
 import pandas as pd
+from flask_mail import Mail
+from recuperar import recuperar_bp
 matplotlib.use('Agg')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'MediSoft2025'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@localhost/medisoft'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'carloscorreab52@gmail.com'
+app.config['MAIL_PASSWORD'] = 'otar xykt cghs gicx'
+app.config['MAIL_DEFAULT_SENDER'] = 'carloscorreab52@gmail.com'
 
 db.init_app(app)
-migrate = Migrate(app, db)
-
 with app.app_context():
     db.create_all()
     
@@ -100,11 +105,17 @@ def panel():
 def medico():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
+    # Obtener parámetros de búsqueda y paginación
     busqueda = request.args.get('busqueda', '')
     especialidad = request.args.get('especialidad', '')
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 10  # Número de registros por página
+    
+    # Consulta base
     query = Medico.query
+    
+    # Aplicar filtros si existen
     if busqueda:
         query = query.filter(
             db.or_(
@@ -115,21 +126,39 @@ def medico():
                 Medico.telefono.ilike(f'%{busqueda}%')
             )
         )
+    
     if especialidad:
         query = query.filter(Medico.especialidad == especialidad)
+    
+    # Ordenar por ID y paginar resultados
     pagination = query.order_by(Medico.id.asc()).paginate(
         page=page,
         per_page=per_page,
         error_out=False
     )
+    
     medicos = pagination.items
+    
+    # Agregar el nombre de la especialidad a cada médico
     for m in medicos:
         m.nombre_especialidad = ESPECIALIDADES.get(m.especialidad, 'Especialidad no encontrada')
+    
+    # Obtener lista de departamentos
     departamentos = departamento.query.order_by(departamento.nombre).all()
+    
+    # Obtener lista de universidades
     universidades = universidad.query.order_by(universidad.nombre).all()
-    if request.args.get('ajax') == '1':
-        return render_template('panel/medicos.html', medicos=medicos, especialidades=ESPECIALIDADES, pagination=pagination, busqueda=busqueda, especialidad_seleccionada=especialidad, departamentos=departamentos, universidades=universidades, ajax_fragment=True)
-    return render_template('panel/medicos.html', medicos=medicos, especialidades=ESPECIALIDADES, pagination=pagination, busqueda=busqueda, especialidad_seleccionada=especialidad, departamentos=departamentos, universidades=universidades)
+    
+    return render_template(
+        'panel/medicos.html',
+        medicos=medicos,
+        especialidades=ESPECIALIDADES,
+        pagination=pagination,
+        busqueda=busqueda,
+        especialidad_seleccionada=especialidad,
+        departamentos=departamentos,
+        universidades=universidades
+    )
 
 @app.route('/paciente')
 def pacientes():
@@ -138,6 +167,8 @@ def pacientes():
     
     # Obtener parámetros de búsqueda y paginación
     busqueda = request.args.get('busqueda', '')
+    grupo_sanguineo = request.args.get('grupo_sanguineo', '')
+    sexo = request.args.get('sexo', '')
     page = request.args.get('page', 1, type=int)
     per_page = 10  # Número de registros por página
     
@@ -156,6 +187,12 @@ def pacientes():
             )
         )
     
+    if grupo_sanguineo:
+        query = query.filter(Paciente.grupo_sanguineo == grupo_sanguineo)
+        
+    if sexo:
+        query = query.filter(Paciente.sexo == sexo)
+    
     # Ordenar por ID y paginar resultados
     pagination = query.order_by(Paciente.id.asc()).paginate(
         page=page,
@@ -171,6 +208,8 @@ def pacientes():
         pacientes=pacientes,
         pagination=pagination,
         busqueda=busqueda,
+        grupo_sanguineo=grupo_sanguineo,
+        sexo=sexo,
         lista_eps=LISTA_EPS,
         departamentos=departamentos
     )
@@ -196,7 +235,7 @@ def cita():
             db.or_(
                 Paciente.nombre.ilike(f'%{busqueda}%'),
                 Paciente.apellido.ilike(f'%{busqueda}%'),
-                Paciente.documento.ilike(f'%{busqueda}%'),
+                Paciente.numero_documento.ilike(f'%{busqueda}%'),
                 Medico.nombre.ilike(f'%{busqueda}%'),
                 Medico.apellido.ilike(f'%{busqueda}%')
             )
@@ -213,14 +252,16 @@ def cita():
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     citas = pagination.items
 
-    # Obtener todos los pacientes y médicos para los selectores
+    # Obtener todos los pacientes, médicos y servicios para los selectores
     pacientes = Paciente.query.all()
     medicos = Medico.query.all()
+    servicios = Servicio.query.all()
     
     return render_template('panel/citas.html',
                          citas=citas,
                          pacientes=pacientes,
                          medicos=medicos,
+                         servicios=servicios,
                          especialidades=ESPECIALIDADES,
                          pagination=pagination,
                          busqueda=busqueda,
@@ -235,6 +276,7 @@ def historia():
     # Obtener parámetros de búsqueda y paginación
     busqueda = request.args.get('busqueda', '')
     medico_id = request.args.get('medico_id', '')
+    fecha = request.args.get('fecha', '')
     page = request.args.get('page', 1, type=int)
     per_page = 10  # Número de registros por página
     
@@ -257,6 +299,9 @@ def historia():
     
     if medico_id:
         query = query.filter(Medico.id == medico_id)
+        
+    if fecha:
+        query = query.filter(db.func.date(historia_clinica.fecha) == datetime.strptime(fecha, '%Y-%m-%d').date())
     
     # Paginar resultados
     paginated_historias = query.order_by(historia_clinica.fecha.desc()).paginate(page=page, per_page=per_page, error_out=False)
@@ -270,7 +315,8 @@ def historia():
     # Obtener lista de citas para asociar con historias clínicas
     citas = Cita.query.all()
     
-    # Usar la constante global de especialidades
+    # Obtener todos los diagnósticos CIE-10
+    diagnosticos = cie10.query.order_by(cie10.codigo).all()
     
     return render_template('panel/historias.html', 
                            historias=paginated_historias,
@@ -279,7 +325,9 @@ def historia():
                            citas=citas,
                            especialidades=ESPECIALIDADES,
                            busqueda=busqueda,
-                           medico_id=medico_id)
+                           medico_id=medico_id,
+                           fecha=fecha,
+                           diagnosticos=diagnosticos)
 
 @app.route('/factura')
 def factura():
@@ -324,6 +372,9 @@ def factura():
     # Obtener las citas que no tienen factura asociada
     citas = Cita.query.filter(Cita.factura == None).all()
     
+    # Obtener todos los servicios para el selector
+    servicios = Servicio.query.all()
+    
     # Obtener el servicio si hay una cita seleccionada
     servicio = ''
     if id_cita:
@@ -334,6 +385,7 @@ def factura():
     return render_template('panel/facturas.html',
                          facturas=pagination,
                          citas=citas,
+                         servicios=servicios,
                          id_cita=id_cita,
                          servicio=servicio,
                          busqueda=busqueda,
@@ -341,6 +393,51 @@ def factura():
                          fecha=fecha,
                          ESPECIALIDADES=ESPECIALIDADES,
                          datetime=datetime)
+
+
+@app.route('/servicios')
+def servicios():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Obtener parámetros de búsqueda y paginación
+    busqueda = request.args.get('busqueda', '')
+    tipo = request.args.get('tipo', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Número de registros por página
+    
+    # Obtener tipos únicos de servicios que existen en la base de datos
+    tipos_disponibles = db.session.query(Servicio.tipo).distinct().filter(Servicio.tipo.isnot(None)).all()
+    tipos_disponibles = [t[0] for t in tipos_disponibles if t[0]]  # Extraer los valores y filtrar nulos
+    
+    # Consulta base
+    query = Servicio.query
+    
+    # Aplicar filtros si existen
+    if busqueda:
+        query = query.filter(
+            db.or_(
+                Servicio.codigo.ilike(f'%{busqueda}%'),
+                Servicio.nombre.ilike(f'%{busqueda}%')
+            )
+        )
+    
+    if tipo:
+        query = query.filter(Servicio.tipo == tipo)
+    
+    # Ordenar por ID y paginar resultados
+    pagination = query.order_by(Servicio.id.asc()).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+    
+    return render_template('panel/servicios.html',
+                         servicios=pagination,
+                         busqueda=busqueda,
+                         tipo=tipo,
+                         tipos_disponibles=tipos_disponibles)
+
 
 @app.route('/perfil')
 def perfil():
@@ -374,436 +471,22 @@ def configuracion():
     
     return render_template('panel/configuracion.html', config=config)
 
-@app.route('/api/cie10/buscar')
-def buscar_cie10_api():
-    # Permitir acceso sin autenticación para páginas de prueba en desarrollo
-    referer = request.headers.get('Referer', '')
-    if 'test' in referer or app.debug:
-        pass  # Permitir acceso en modo debug o páginas de prueba
-    elif 'user_id' not in session:
-        return jsonify({'error': 'No autorizado'}), 401
-    
-    try:
-        query_term = request.args.get('q', '').strip()
-        
-        if not query_term or len(query_term) < 2:
-            return jsonify([])
+@app.route('/buscar_diagnostico')
+def buscar_diagnostico():
+    q = request.args.get('q', '')
+    resultados = cie10.query.filter(
+        (cie10.codigo.like(f'%{q}%')) | (cie10.descripcion.like(f'%{q}%'))
+    ).limit(10).all()
+    return jsonify([{'codigo': d.codigo, 'descripcion': d.descripcion} for d in resultados])
 
-        # Búsqueda mejorada con múltiples criterios
-        resultados = Cie10.query.filter(
-            Cie10.activo == True,
-            db.or_(
-                Cie10.codigo.ilike(f'{query_term}%'),
-                Cie10.descripcion.ilike(f'%{query_term}%'),
-                Cie10.codigo.ilike(f'%{query_term}%')  # Búsqueda parcial en código también
-            )
-        ).order_by(
-            # Priorizar códigos que empiecen con el término
-            db.case(
-                (Cie10.codigo.ilike(f'{query_term}%'), 1),
-                else_=2
-            ),
-            Cie10.codigo
-        ).limit(50).all()  # Aumentar límite a 50
+@app.route('/olvidar_contraseña')
+def olvidar_contraseña():
+    return render_template('pagina_principal/olvidar_contraseña.html')
 
-        response_data = []
-        for r in resultados:
-            response_data.append({
-                'id': r.id,
-                'text': f"{r.codigo} - {r.descripcion}",
-                'codigo': r.codigo,
-                'descripcion': r.descripcion
-            })
+# ... configuración de Flask-Mail ...
+mail = Mail(app)
 
-        return jsonify(response_data)
-        
-    except Exception as e:
-        print(f"Error en API CIE-10: {str(e)}")
-        return jsonify({'error': 'Error interno del servidor'}), 500
-
-@app.route('/historia/agregar', methods=['POST'])
-def agregar_historia():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    try:
-        id_cita_form = request.form.get('citaHistoria')
-        if not id_cita_form:
-            flash('Debe seleccionar una cita para la historia clínica.', 'warning')
-            return redirect(url_for('historia'))
-
-        historia_existente = historia_clinica.query.filter_by(id_cita=id_cita_form).first()
-        if historia_existente:
-            flash('Ya existe una historia clínica para esta cita. Puede editarla.', 'warning')
-            return redirect(url_for('historia'))
-        
-        nueva_historia = historia_clinica(
-            id_cita=id_cita_form,
-            fecha=datetime.utcnow(),
-            motivo_consulta=request.form.get('motivoConsulta'),
-            antesedentes=request.form.get('antecedentesMedicos'),
-            tratamiento=request.form.get('tratamientoActual')
-        )
-        
-        # Manejar diagnósticos CIE-10
-        diagnosticos_data = request.form.get('diagnosticos_cie10_ids', '')
-        if diagnosticos_data:
-            # Split by comma and filter empty values
-            ids_cie10 = [id.strip() for id in diagnosticos_data.split(',') if id.strip()]
-            for cie10_id in ids_cie10:
-                try:
-                    cie10 = Cie10.query.get(int(cie10_id))
-                    if cie10 and cie10.estado == 'Activo':
-                        nueva_historia.diagnosticos.append(cie10)
-                except (ValueError, AttributeError) as e:
-                    print(f"Error al procesar diagnóstico ID {cie10_id}: {e}")
-                    continue
-        
-        db.session.add(nueva_historia)
-        db.session.commit()
-        flash('Historia clínica agregada exitosamente', 'success')
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al agregar historia clínica: {str(e)}', 'error')
-        print(f"Error detallado HC: {str(e)}")
-    
-    return redirect(url_for('historia'))
-
-@app.route('/historia/editar/<int:id>', methods=['POST'])
-def editar_historia(id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    try:
-        historia = historia_clinica.query.get_or_404(id)
-        
-        # Actualizar campos básicos
-        historia.motivo_consulta = request.form.get('editMotivoConsulta')
-        historia.antesedentes = request.form.get('editAntecedentesMedicos')
-        historia.tratamiento = request.form.get('editTratamientoActual')
-        historia.fecha = datetime.utcnow()
-        
-        # Actualizar diagnósticos CIE-10
-        historia.diagnosticos.clear()
-        ids_cie10 = request.form.getlist('diagnosticos_cie10_ids[]')
-        for cie10_id in ids_cie10:
-            cie10 = Cie10.query.get(cie10_id)
-            if cie10 and cie10.activo:
-                historia.diagnosticos.append(cie10)
-        
-        db.session.commit()
-        flash('Historia clínica actualizada exitosamente', 'success')
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al actualizar historia clínica: {str(e)}', 'error')
-        print(f"Error detallado HC Edit: {str(e)}")
-    
-    return redirect(url_for('historia'))
-
-@app.route('/medico/exportar-pdf')
-def exportar_medicos_pdf():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    busqueda = request.args.get('busqueda', '')
-    especialidad = request.args.get('especialidad', '')
-    query = Medico.query
-    if busqueda:
-        query = query.filter(
-            db.or_(
-                Medico.nombre.ilike(f'%{busqueda}%'),
-                Medico.apellido.ilike(f'%{busqueda}%'),
-                Medico.numero_documento.ilike(f'%{busqueda}%'),
-                Medico.correo.ilike(f'%{busqueda}%'),
-                Medico.telefono.ilike(f'%{busqueda}%')
-            )
-        )
-    if especialidad:
-        query = query.filter(Medico.especialidad == especialidad)
-    medicos = query.all()
-    # ... (resto del código de generación de PDF igual, usando la lista medicos)
-
-@app.route('/medico/exportar-excel')
-def exportar_medicos_excel():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    busqueda = request.args.get('busqueda', '')
-    especialidad = request.args.get('especialidad', '')
-    query = Medico.query
-    if busqueda:
-        query = query.filter(
-            db.or_(
-                Medico.nombre.ilike(f'%{busqueda}%'),
-                Medico.apellido.ilike(f'%{busqueda}%'),
-                Medico.numero_documento.ilike(f'%{busqueda}%'),
-                Medico.correo.ilike(f'%{busqueda}%'),
-                Medico.telefono.ilike(f'%{busqueda}%')
-            )
-        )
-    if especialidad:
-        query = query.filter(Medico.especialidad == especialidad)
-    medicos = query.all()
-    data = [{
-        'Nombre': m.nombre,
-        'Apellido': m.apellido,
-        'Especialidad': m.especialidad,
-        'Tipo Doc.': m.tipo_documento,
-        'N° Doc.': m.numero_documento,
-        'Teléfono': m.telefono,
-        'Correo': m.correo
-    } for m in medicos]
-    df = pd.DataFrame(data)
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Médicos')
-    output.seek(0)
-    return send_file(output, download_name="medicos.xlsx", as_attachment=True)
-
-@app.route('/paciente/exportar-pdf')
-def exportar_pacientes_pdf():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    pacientes = Paciente.query.all()
-    from reportlab.lib.pagesizes import landscape, letter
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
-    from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from io import BytesIO
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(letter),
-        rightMargin=30,
-        leftMargin=30,
-        topMargin=30,
-        bottomMargin=30
-    )
-    styles = getSampleStyleSheet()
-    elements = []
-    title = Paragraph("<b>Reporte de Pacientes</b>", styles['Title'])
-    elements.append(title)
-    elements.append(Spacer(1, 12))
-    data = [['ID', 'Nombre', 'Apellido', 'Tipo Doc.', 'N° Doc.', 'Teléfono', 'Correo', 'EPS']]
-    for p in pacientes:
-        data.append([
-            f'P{str(p.id).zfill(3)}',
-            p.nombre,
-            p.apellido,
-            p.tipo_documento,
-            p.numero_documento,
-            p.telefono,
-            p.correo,
-            p.eps
-        ])
-    table = Table(data, repeatRows=1)
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2651a6')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#dee2e6')),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-    elements.append(table)
-    doc.build(elements)
-    buffer.seek(0)
-    from flask import send_file
-    return send_file(buffer, download_name="pacientes_report.pdf", as_attachment=True, mimetype='application/pdf')
-
-@app.route('/paciente/exportar-excel')
-def exportar_pacientes_excel():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    busqueda = request.args.get('busqueda', '')
-    query = Paciente.query
-    if busqueda:
-        query = query.filter(
-            db.or_(
-                Paciente.nombre.ilike(f'%{busqueda}%'),
-                Paciente.apellido.ilike(f'%{busqueda}%'),
-                Paciente.numero_documento.ilike(f'%{busqueda}%'),
-                Paciente.correo.ilike(f'%{busqueda}%'),
-                Paciente.telefono.ilike(f'%{busqueda}%')
-            )
-        )
-    pacientes = query.all()
-    data = [{
-        'Nombre': p.nombre,
-        'Apellido': p.apellido,
-        'Tipo Doc.': p.tipo_documento,
-        'N° Doc.': p.numero_documento,
-        'Teléfono': p.telefono,
-        'Correo': p.correo,
-        'EPS': p.eps
-    } for p in pacientes]
-    df = pd.DataFrame(data)
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Pacientes')
-    output.seek(0)
-    from flask import send_file
-    return send_file(output, download_name="pacientes.xlsx", as_attachment=True)
-
-@app.route('/cita/exportar-excel')
-def exportar_citas_excel():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    busqueda = request.args.get('busqueda', '')
-    fecha = request.args.get('fecha', '')
-    estado = request.args.get('estado', '')
-    query = Cita.query.join(Paciente).join(Medico)
-    if busqueda:
-        query = query.filter(
-            db.or_(
-                Paciente.nombre.ilike(f'%{busqueda}%'),
-                Paciente.apellido.ilike(f'%{busqueda}%'),
-                Paciente.documento.ilike(f'%{busqueda}%'),
-                Medico.nombre.ilike(f'%{busqueda}%'),
-                Medico.apellido.ilike(f'%{busqueda}%')
-            )
-        )
-    if fecha:
-        query = query.filter(db.func.date(Cita.fecha) == fecha)
-    if estado:
-        query = query.filter(Cita.estado == estado)
-    citas = query.all()
-    data = [{
-        'Fecha': c.fecha.strftime('%d/%m/%Y'),
-        'Hora': c.hora.strftime('%H:%M'),
-        'Paciente': f'{c.paciente.nombre} {c.paciente.apellido}',
-        'Médico': f'{c.medico.nombre} {c.medico.apellido}',
-        'Tipo': c.tipo_cita,
-        'Estado': c.estado,
-        'Motivo': c.motivo
-    } for c in citas]
-    df = pd.DataFrame(data)
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Citas')
-    output.seek(0)
-    from flask import send_file
-    return send_file(output, download_name="citas.xlsx", as_attachment=True)
-
-@app.route('/historia/exportar-excel')
-def exportar_historias_excel():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    busqueda = request.args.get('busqueda', '')
-    medico_id = request.args.get('medico_id', '')
-    diagnostico = request.args.get('diagnostico', '')
-    query = historia_clinica.query.join(Cita, historia_clinica.id_cita == Cita.id)\
-        .join(Paciente, Cita.paciente_id == Paciente.id)\
-        .join(Medico, Cita.medico_id == Medico.id)
-    if busqueda:
-        query = query.filter(
-            db.or_(
-                Paciente.nombre.ilike(f'%{busqueda}%'),
-                Paciente.apellido.ilike(f'%{busqueda}%'),
-                Paciente.numero_documento.ilike(f'%{busqueda}%'),
-                Medico.nombre.ilike(f'%{busqueda}%'),
-                Medico.apellido.ilike(f'%{busqueda}%')
-            )
-        )
-    if medico_id:
-        query = query.filter(Medico.id == medico_id)
-    if diagnostico:
-        query = query.filter(historia_clinica.diagnostico.ilike(f'%{diagnostico}%'))
-    historias = query.all()
-    data = [{
-        'Fecha': h.fecha.strftime('%d/%m/%Y'),
-        'Paciente': f'{h.cita.paciente.nombre} {h.cita.paciente.apellido}',
-        'Médico': f'{h.cita.medico.nombre} {h.cita.medico.apellido}',
-        'Motivo': h.motivo_consulta,
-        'Diagnóstico': h.diagnostico,
-        'Tratamiento': h.tratamiento
-    } for h in historias]
-    df = pd.DataFrame(data)
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Historias')
-    output.seek(0)
-    from flask import send_file
-    return send_file(output, download_name="historias_clinicas.xlsx", as_attachment=True)
-
-@app.route('/test-select2')
-def test_select2():
-    return render_template('test_select2.html')
-
-@app.route('/test-modal')
-def test_modal():
-    return render_template('test_modal.html')
-
-@app.route('/test-alternativo')
-def test_alternativo():
-    return render_template('test_alternativo.html')
-
-@app.route('/test-historia')
-def test_historia():
-    # Test route without authentication for debugging
-    from datetime import datetime
-    import sys
-    
-    # Mock session data for testing
-    session['user_id'] = 1
-    session['user_role'] = 'admin'
-    
-    # Get search parameters
-    busqueda = request.args.get('busqueda', '')
-    medico_id = request.args.get('medico_id', '')
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-    
-    # Base query for clinical histories
-    query = historia_clinica.query.join(Cita, historia_clinica.id_cita == Cita.id)\
-        .join(Paciente, Cita.paciente_id == Paciente.id)\
-        .join(Medico, Cita.medico_id == Medico.id)
-    
-    # Apply filters
-    if busqueda:
-        query = query.filter(
-            db.or_(
-                Paciente.nombre.ilike(f'%{busqueda}%'),
-                Paciente.apellido.ilike(f'%{busqueda}%'),
-                Paciente.numero_documento.ilike(f'%{busqueda}%'),
-                Medico.nombre.ilike(f'%{busqueda}%'),
-                Medico.apellido.ilike(f'%{busqueda}%')
-            )
-        )
-    
-    if medico_id:
-        query = query.filter(Medico.id == medico_id)
-    
-    # Paginate results
-    historias = query.order_by(historia_clinica.fecha.desc()).paginate(
-        page=page, per_page=per_page, error_out=False
-    )
-    
-    # Get all doctors for filter dropdown
-    medicos = Medico.query.filter_by(estado='Activo').all()
-    
-    # Get all active appointments without clinical history
-    citas = Cita.query.filter_by(estado='confirmada')\
-        .filter(~Cita.historia_clinica.has())\
-        .join(Paciente, Cita.paciente_id == Paciente.id)\
-        .join(Medico, Cita.medico_id == Medico.id)\
-        .order_by(Cita.fecha.desc()).all()
-    
-    from constantes import ESPECIALIDADES
-    
-    return render_template('panel/historias.html',
-                         historias=historias,
-                         medicos=medicos,
-                         citas=citas,
-                         busqueda=busqueda,
-                         medico_id=medico_id,
-                         especialidades=ESPECIALIDADES)
+app.register_blueprint(recuperar_bp)
 
 init_auth_routes(app, db)
 

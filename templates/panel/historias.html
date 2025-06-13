@@ -4,13 +4,13 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
         <h1 class="h3 fw-bold text-secondary">Gestión de Historias Clínicas</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-sm btn-primary" onclick="console.log('🔥 BOTÓN CLICKEADO'); openCustomModal();">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevaHistoriaModal">
                 <i class="fas fa-notes-medical me-1"></i> Nueva Historia
             </button>
-            <a href="{{ url_for('exportar_historias_pdf', busqueda=busqueda, medico_id=medico_id, diagnostico=diagnostico) }}" class="btn btn-sm btn-outline-secondary ms-2">
+            <a href="{{ url_for('exportar_historias_pdf', busqueda=request.args.get('busqueda', ''), medico_id=request.args.get('medico_id', ''), fecha=request.args.get('fecha', '')) }}" class="btn btn-sm btn-outline-secondary ms-2">
                 <i class="fas fa-file-pdf me-1"></i> Exportar PDF
             </a>
-            <a href="{{ url_for('exportar_historias_excel', busqueda=busqueda, medico_id=medico_id, diagnostico=diagnostico) }}" class="btn btn-sm btn-outline-success ms-2">
+            <a href="{{ url_for('exportar_historias_excel', busqueda=request.args.get('busqueda', ''), medico_id=request.args.get('medico_id', ''), fecha=request.args.get('fecha', '')) }}" class="btn btn-sm btn-outline-secondary ms-2">
                 <i class="fas fa-file-excel me-1"></i> Exportar Excel
             </a>
         </div>
@@ -27,13 +27,16 @@
                             <input type="text" class="form-control" name="busqueda" value="{{ busqueda }}" placeholder="Buscar paciente o médico...">
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-select" name="medico_id">
                             <option value="" {% if not medico_id %}selected{% endif %}>Todos los médicos</option>
                             {% for m in medicos %}
                             <option value="{{ m.id }}" {% if medico_id|int == m.id %}selected{% endif %}>Dr. {{ m.nombre }} {{ m.apellido }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" class="form-control" name="fecha" value="{{ fecha }}" placeholder="Filtrar por fecha">
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i>Filtrar</button>
@@ -80,20 +83,7 @@
                                 <td>{{ historia.fecha.strftime('%d/%m/%Y') }}</td>
                                 <td>{{ historia.fecha.strftime('%d/%m/%Y') }}</td>
                                 <td>Dr. {{ historia.cita.medico.nombre }} {{ historia.cita.medico.apellido }}</td>
-                                <td>
-                                    {% if historia.diagnosticos.count() > 0 %}
-                                        <ul class="list-unstyled mb-0">
-                                            {% for diag in historia.diagnosticos %}
-                                                <li>
-                                                    <small class="text-muted">{{ diag.codigo }}</small>
-                                                    {{ diag.descripcion }}
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% else %}
-                                        <span class="text-muted">Sin diagnósticos registrados</span>
-                                    {% endif %}
-                                </td>
+                                <td>{{ historia.diagnostico.descripcion }}</td>
                                 <td>
                                     <div class="d-flex gap-2">
                                         <button type="button" class="btn btn-primary btn-action" title="Ver detalles" data-bs-toggle="modal" data-bs-target="#verHistoriaModal{{ historia.id }}">
@@ -128,13 +118,13 @@
             <nav aria-label="Paginación de historias clínicas">
                 <ul class="pagination justify-content-center mt-4">
                     <li class="page-item {% if not historias.has_prev %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('historia', page=historias.prev_num, busqueda=busqueda, diagnostico=diagnostico) if historias.has_prev else '#' }}" tabindex="{% if not historias.has_prev %}-1{% endif %}" aria-disabled="{% if not historias.has_prev %}true{% else %}false{% endif %}">Anterior</a>
+                        <a class="page-link" href="{{ url_for('historia', page=historias.prev_num, busqueda=busqueda, medico_id=medico_id, fecha=fecha) if historias.has_prev else '#' }}" tabindex="{% if not historias.has_prev %}-1{% endif %}" aria-disabled="{% if not historias.has_prev %}true{% else %}false{% endif %}">Anterior</a>
                     </li>
                     
                     {% for page_num in historias.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
                         {% if page_num %}
                             <li class="page-item {% if page_num == historias.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('historia', page=page_num, busqueda=busqueda, diagnostico=diagnostico) }}">{{ page_num }}</a>
+                                <a class="page-link" href="{{ url_for('historia', page=page_num, busqueda=busqueda, medico_id=medico_id, fecha=fecha) }}">{{ page_num }}</a>
                             </li>
                         {% else %}
                             <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -142,7 +132,7 @@
                     {% endfor %}
                     
                     <li class="page-item {% if not historias.has_next %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('historia', page=historias.next_num, busqueda=busqueda, diagnostico=diagnostico) if historias.has_next else '#' }}">Siguiente</a>
+                        <a class="page-link" href="{{ url_for('historia', page=historias.next_num, busqueda=busqueda, medico_id=medico_id, fecha=fecha) if historias.has_next else '#' }}">Siguiente</a>
                     </li>
                 </ul>
             </nav>
@@ -151,78 +141,59 @@
     </div>
 </main>
 
-<!-- Modal para Nueva Historia Clínica - Custom Modal -->
-<div id="nuevaHistoriaModal" class="custom-modal historia-modal">
-    <div class="custom-modal-content historia-modal-content" style="position: fixed !important; top: calc(12% + 60px) !important; left: 50% !important; transform: translateX(-50%) !important; width: 38vw !important; max-width: 620px !important; min-width: 520px !important; background: white !important; border-radius: 0.5rem !important; z-index: 1001 !important; box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important; margin: 0 !important; padding: 0 !important; max-height: 82vh !important; overflow-y: auto !important; box-sizing: border-box !important;">
-        <div class="bg-primary text-white p-2 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0">Registrar Nueva Historia Clínica</h6>
-            <button type="button" class="btn-close btn-close-white" onclick="closeCustomModal()"></button>
-        </div>
-        
-        <div class="p-2">
-            <form id="nuevaHistoriaForm" action="{{ url_for('agregar_historia') }}" method="POST">
-                <div class="row mb-2">
-                    <div class="col-md-12">
-                        <label for="citaHistoria" class="form-label small">Cita asociada</label>
-                        <select class="form-select form-select-sm border border-primary rounded" id="citaHistoria" name="citaHistoria" required onchange="completarMotivo()">
-                            <option value="" selected disabled>Seleccionar cita</option>
-                            {% for c in citas %}
-                                {% if not c.historia_clinica %}
-                                <option value="{{ c.id }}" data-motivo="{{ c.motivo }}">{{ c.fecha.strftime('%d/%m/%Y') }} - {{ c.paciente.nombre }} {{ c.paciente.apellido }} (Dr. {{ c.medico.nombre }})</option>
-                                {% endif %}
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-md-12">
-                        <label for="motivoConsulta" class="form-label small">Motivo de Consulta</label>
-                        <input type="text" class="form-control form-control-sm border border-primary rounded" id="motivoConsulta" name="motivoConsulta" placeholder="Ingrese el motivo de consulta" required>
-                    </div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-md-12">
-                        <label for="antecedentesMedicos" class="form-label small">Antecedentes Médicos</label>
-                        <textarea class="form-control form-control-sm border border-primary rounded" id="antecedentesMedicos" name="antecedentesMedicos" rows="2" placeholder="Ingrese los antecedentes médicos"></textarea>
-                    </div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-md-12">
-                        <label for="diagnosticosCIE10" class="form-label small">Diagnósticos CIE-10</label>
-                        
-                        <!-- Input de búsqueda -->
-                        <div class="mb-1">
-                            <input type="text" class="form-control form-control-sm" id="searchDiagnosticos" placeholder="Buscar código o descripción CIE-10..." autocomplete="off">
-                            <div id="searchResults" class="search-results-dropdown" style="display: none;"></div>
+<!-- Modal para Nueva Historia Clínica -->
+<div class="modal fade" id="nuevaHistoriaModal" tabindex="-1" aria-labelledby="nuevaHistoriaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="nuevaHistoriaModalLabel">Registrar Nueva Historia Clínica</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="nuevaHistoriaForm" action="{{ url_for('agregar_historia') }}" method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="citaHistoria" class="form-label">Cita asociada</label>
+                            <select class="form-select border border-primary rounded" id="citaHistoria" name="citaHistoria" required onchange="completarMotivo()">
+                                <option value="" selected disabled>Seleccionar cita</option>
+                                {% for c in citas %}
+                                    {% if not c.historia_clinica %}
+                                    <option value="{{ c.id }}" data-motivo="{{ c.motivo }}">{{ c.fecha.strftime('%d/%m/%Y') }} - {{ c.paciente.nombre }} {{ c.paciente.apellido }} (Dr. {{ c.medico.nombre }})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
                         </div>
-                        
-                        <!-- Diagnósticos seleccionados -->
-                        <div id="selectedDiagnosticos" class="selected-diagnosticos mb-1" style="min-height: 30px; padding: 4px;">
-                            <small class="text-muted">Diagnósticos seleccionados aparecerán aquí</small>
-                        </div>
-                        
-                        <!-- Input hidden para enviar los IDs -->
-                        <input type="hidden" id="diagnosticosCIE10" name="diagnosticos_cie10_ids" value="">
-                        
-                        <div class="d-flex align-items-center mt-1">
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="clearDiagnosticosBtn" style="font-size: 0.75em; padding: 0.2rem 0.4rem;">Limpiar</button>
-                            <small class="form-text text-muted" style="font-size: 0.75em;">Busque por código o descripción.</small>
+                        <div class="col-md-6">
+                            <label for="motivoConsulta" class="form-label">Motivo de Consulta</label>
+                            <input type="text" class="form-control border border-primary rounded" id="motivoConsulta" name="motivoConsulta" placeholder="Ingrese el motivo de consulta" required>
                         </div>
                     </div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-md-12">
-                        <label for="tratamientoActual" class="form-label small">Tratamiento</label>
-                        <textarea class="form-control form-control-sm border border-primary rounded" id="tratamientoActual" name="tratamientoActual" rows="2" placeholder="Ingrese el tratamiento" required></textarea>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="antecedentesMedicos" class="form-label">Antecedentes Médicos</label>
+                            <textarea class="form-control border border-primary rounded" id="antecedentesMedicos" name="antecedentesMedicos" rows="3" placeholder="Ingrese los antecedentes médicos"></textarea>
+                        </div>
                     </div>
-                </div>
-            </form>
-        </div>
-        
-        <div class="p-2 border-top bg-light">
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="closeCustomModal()">Cancelar</button>
-                <button type="submit" form="nuevaHistoriaForm" class="btn btn-primary btn-sm">Guardar Historia</button>
+                    <div class="row mb-3">
+                        <div class="col-md-12 position-relative">
+                            <label for="diagnostico" class="form-label">Diagnóstico CIE-10</label>
+                            <input type="text" class="form-control border border-primary rounded" id="diagnostico" placeholder="Buscar por código o descripción..." required>
+                            <input type="hidden" id="diagnostico_codigo" name="diagnostico_codigo">
+                            <div id="diagnostico-sugerencias" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; max-height: 200px; overflow-y: auto; display: none; background-color: white; border: 1px solid #dee2e6; border-radius: 0.25rem;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="tratamiento" class="form-label">Tratamiento</label>
+                            <textarea class="form-control border border-primary rounded" id="tratamiento" name="tratamiento" rows="3" placeholder="Ingrese el tratamiento" required></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="nuevaHistoriaForm" class="btn btn-primary">Guardar Historia</button>
             </div>
         </div>
     </div>
@@ -230,7 +201,7 @@
 
 {% for historia in historias.items %}
 <div class="modal fade" id="verHistoriaModal{{ historia.id }}" tabindex="-1" aria-labelledby="verHistoriaModalLabel{{ historia.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="verHistoriaModalLabel{{ historia.id }}">
@@ -319,7 +290,7 @@
                                         <h6 class="card-subtitle mb-2 text-muted">
                                             <i class="fas fa-history me-2"></i>Antecedentes
                                         </h6>
-                                        <p class="card-text">{{ historia.antesedentes or 'No se registraron antecedentes' }}</p>
+                                        <p class="card-text">{{ historia.antecedentes or 'No se registraron antecedentes' }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -330,7 +301,7 @@
                                         <h6 class="card-subtitle mb-2 text-muted">
                                             <i class="fas fa-heartbeat me-2"></i>Diagnóstico
                                         </h6>
-                                        <p class="card-text">{{ historia.diagnostico }}</p>
+                                        <p class="card-text">{{ historia.diagnostico.descripcion }}</p>
                                     </div>
                                 </div>
                                 
@@ -356,10 +327,10 @@
         </div>
     </div>
 </div>
-
+    
 <!-- Modal Editar Historia Clínica {{ historia.id }} -->
 <div class="modal fade" id="editarHistoriaModal{{ historia.id }}" tabindex="-1" aria-labelledby="editarHistoriaModalLabel{{ historia.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="editarHistoriaModalLabel{{ historia.id }}">Editar Historia Clínica</h5>
@@ -384,34 +355,29 @@
                         </div>
                         <div class="col-md-6">
                             <label for="editMotivoConsulta{{ historia.id }}" class="form-label">Motivo de Consulta</label>
-                            <input type="text" class="form-control border border-primary rounded" id="editMotivoConsulta{{ historia.id }}" name="editMotivoConsulta" value="{{ historia.motivo_consulta }}" placeholder="Ingrese el motivo de consulta" required>
+                            <input type="text" class="form-control border border-primary rounded" id="editMotivoConsulta{{ historia.id }}" name="motivoConsulta" value="{{ historia.motivo_consulta }}" placeholder="Ingrese el motivo de consulta" required>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-12">
                             <label for="editAntecedentesMedicos{{ historia.id }}" class="form-label">Antecedentes Médicos</label>
-                            <textarea class="form-control border border-primary rounded" id="editAntecedentesMedicos{{ historia.id }}" name="editAntecedentesMedicos" rows="3" placeholder="Ingrese los antecedentes médicos">{{ historia.antesedentes }}</textarea>
+                            <textarea class="form-control border border-primary rounded" id="editAntecedentesMedicos{{ historia.id }}" name="antecedentesMedicos" rows="3" placeholder="Ingrese los antecedentes médicos">{{ historia.antecedentes }}</textarea>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12 position-relative">
+                            <label for="editDiagnostico{{ historia.id }}" class="form-label">Diagnóstico CIE-10</label>
+                            <input type="text" class="form-control border border-primary rounded" id="editDiagnostico{{ historia.id }}" placeholder="Buscar por código o descripción..." required value="{{ historia.diagnostico.descripcion }}">
+                            <input type="hidden" id="editDiagnosticoCodigo{{ historia.id }}" name="diagnostico_codigo" value="{{ historia.diagnostico_codigo }}">
+                            <div id="edit-diagnostico-sugerencias{{ historia.id }}" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; max-height: 200px; overflow-y: auto; display: none; background-color: white; border: 1px solid #dee2e6; border-radius: 0.25rem;"></div>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <label for="editDiagnosticosCIE10{{ historia.id }}" class="form-label">Diagnósticos CIE-10</label>
-                            <select class="form-select select2-diagnosticos" id="editDiagnosticosCIE10{{ historia.id }}" name="diagnosticos_cie10_ids[]" multiple="multiple" style="width: 100%;">
-                                {% for diag in historia.diagnosticos %}
-                                    <option value="{{ diag.id }}" selected="selected">{{ diag.codigo }} - {{ diag.descripcion }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2 clearEditDiagnosticosBtn" data-historia-id="{{ historia.id }}">Limpiar diagnósticos</button>
-                            <small class="form-text text-muted">Busque por código o descripción. Puede seleccionar múltiples diagnósticos.</small>
+                            <label for="editTratamientoActual{{ historia.id }}" class="form-label">Tratamiento</label>
+                            <textarea class="form-control border border-primary rounded" id="editTratamientoActual{{ historia.id }}" name="tratamiento" rows="3" placeholder="Ingrese el tratamiento" required>{{ historia.tratamiento }}</textarea>
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label for="editTratamientoActual{{ historia.id }}" class="form-label">Tratamiento Actual</label>
-                            <textarea class="form-control border border-primary rounded" id="editTratamientoActual{{ historia.id }}" name="editTratamientoActual" rows="3" placeholder="Ingrese el tratamiento" required>{{ historia.tratamiento }}</textarea>
-                        </div>
-                    </div>
-                    <input type="hidden" id="editHistoriaId{{ historia.id }}" name="editHistoriaId" value="{{ historia.id }}">
                 </form>
             </div>
             <div class="modal-footer">
@@ -423,799 +389,52 @@
 </div>
 {% endfor %}
 
+{% if busqueda_diagnostico and diagnosticos %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-0">Resultados de búsqueda CIE-10</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Subcategoría</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for diagnostico in diagnosticos %}
+                    <tr>
+                        <td>{{ diagnostico.codigo }}</td>
+                        <td>{{ diagnostico.descripcion }}</td>
+                        <td>{{ diagnostico.categoria }}</td>
+                        <td>{{ diagnostico.subcategoria }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="seleccionarDiagnostico('{{ diagnostico.codigo }}', '{{ diagnostico.descripcion }}')">
+                                Seleccionar
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
-<!-- jQuery debe ir antes que Select2 y cualquier script que use $ -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/es.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ url_for('static', filename='js/panel/alerts.js') }}"></script>
-
-<script>
-    // Función para autocompletar el motivo de consulta cuando se selecciona una cita
-    function completarMotivo() {
-        var selectCita = document.getElementById('citaHistoria');
-        var inputMotivo = document.getElementById('motivoConsulta');
-        
-        if (selectCita.selectedIndex > 0) {
-            var selectedOption = selectCita.options[selectCita.selectedIndex];
-            var motivo = selectedOption.getAttribute('data-motivo');
-            inputMotivo.value = motivo;
-        } else {
-            inputMotivo.value = '';
-        }
-    }
-</script>
-
-<script>
-$(document).ready(function() {
-    console.log('Inicializando sistema de diagnósticos...');
-    
-    // Asegurar que el modal esté oculto al cargar la página (usando JavaScript puro)
-    var modal = document.getElementById('nuevaHistoriaModal');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.classList.remove('show');
-        console.log('Modal inicializado correctamente como oculto');
-    }
-
-    // LAS FUNCIONES YA ESTÁN DEFINIDAS ARRIBA, SOLO EXPONERLAS
-    // Exponer funciones globalmente
-    window.openCustomModal = openCustomModal;
-    window.closeCustomModal = closeCustomModal;
-    
-    // Debugging: Verificar que las funciones están disponibles
-    console.log('Funciones globales expuestas:', {
-        openCustomModal: typeof window.openCustomModal,
-        closeCustomModal: typeof window.closeCustomModal
-    });
-    
-    // Función para inicializar Select2 con configuración mejorada
-    function initSelect2Diagnosticos(selector, parentModal) {
-        console.log('Inicializando Select2 para:', selector);
-        
-        // Verificar si el elemento existe
-        if (!$(selector).length) {
-            console.warn('Elemento no encontrado:', selector);
-            return;
-        }
-        
-        // Destruir Select2 si ya existe
-        if ($(selector).hasClass('select2-hidden-accessible')) {
-            $(selector).select2('destroy');
-        }
-        
-        var config = {
-            theme: 'bootstrap-5',
-            language: 'es',
-            placeholder: 'Buscar código o descripción CIE-10...',
-            allowClear: true,
-            minimumInputLength: 2,
-            width: '100%',
-            dropdownAutoWidth: false,
-            dropdownParent: $('body'), // Attach to body to avoid z-index issues
-            dropdownCssClass: 'select2-dropdown-forced-top',
-            ajax: {
-                url: "{{ url_for('buscar_cie10_api') }}",
-                dataType: 'json',
-                delay: 300,
-                data: function (params) {
-                    return {
-                        q: params.term || ''
-                    };
-                },
-                processResults: function (data, params) {
-                    console.log('Resultados API CIE-10:', data);
-                    return {
-                        results: data || []
-                    };
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error en API CIE-10:', error);
-                    return {
-                        results: []
-                    };
-                },
-                cache: true
-            },
-            escapeMarkup: function (markup) {
-                return markup;
-            },
-            templateResult: function (item) {
-                if (item.loading) {
-                    return item.text;
-                }
-                return '<div style="font-size: 0.9em; line-height: 1.3;">' +
-                       '<strong>' + (item.codigo || '') + '</strong><br>' +
-                       '<small class="text-muted">' + (item.descripcion || item.text || '') + '</small>' +
-                       '</div>';
-            },
-            templateSelection: function (item) {
-                return item.codigo ? (item.codigo + ' - ' + item.descripcion) : item.text;
-            }
-        };
-        
-        // Añadir dropdownParent si se especifica
-        if (parentModal) {
-            config.dropdownParent = $(parentModal);
-        }
-        
-        try {
-            $(selector).select2(config);
-            console.log('Select2 inicializado correctamente para:', selector);
-        } catch (error) {
-            console.error('Error al inicializar Select2:', error);
-        }
-    }
-
-    // LAS FUNCIONES YA ESTÁN EXPUESTAS ARRIBA EN DOCUMENT.READY
-    // Eventos del modal usando JavaScript nativo
-    // Cerrar modal con ESC
-    document.addEventListener('keydown', function(e) {
-        var modal = document.getElementById('nuevaHistoriaModal');
-        if (e.key === "Escape" && modal && modal.classList.contains('show')) {
-            closeCustomModal();
-        }
-    });
-
-    // Cerrar modal haciendo clic fuera
-    var modal = document.getElementById('nuevaHistoriaModal');
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeCustomModal();
-            }
-        });
-    }
-
-    // Botón para limpiar todos los diagnósticos seleccionados en nueva historia
-    var clearBtn = document.getElementById('clearDiagnosticosBtn');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', function() {
-            clearSelectedDiagnosticos();
-        });
-    }
-
-    // Sistema nativo de búsqueda de diagnósticos CIE-10
-    var selectedDiagnosticos = [];
-    var searchTimeout;
-
-    // Hacer funciones globales
-    window.selectedDiagnosticos = selectedDiagnosticos;
-    window.initNativeDiagnosticSearch = initNativeDiagnosticSearch;
-    window.clearSelectedDiagnosticos = clearSelectedDiagnosticos;
-
-    function initNativeDiagnosticSearch() {
-        console.log('Inicializando búsqueda nativa de diagnósticos...');
-        
-        // Remover listeners anteriores para evitar duplicados
-        $('#searchDiagnosticos').off('input');
-        
-        $('#searchDiagnosticos').on('input', function() {
-            var query = $(this).val().trim();
-            
-            // Limpiar timeout anterior
-            if (searchTimeout) {
-                clearTimeout(searchTimeout);
-            }
-            
-            if (query.length >= 2) {
-                searchTimeout = setTimeout(function() {
-                    searchDiagnosticos(query);
-                }, 300);
-            } else {
-                $('#searchResults').hide();
-            }
-        });
-
-        // Cerrar resultados al hacer clic fuera
-        $(document).off('click.diagnosticos'); // Remover listener anterior
-        $(document).on('click.diagnosticos', function(e) {
-            if (!$(e.target).closest('#searchDiagnosticos, #searchResults').length) {
-                $('#searchResults').hide();
-            }
-        });
-    }
-
-    function searchDiagnosticos(query) {
-        $.ajax({
-            url: "{{ url_for('buscar_cie10_api') }}",
-            method: 'GET',
-            data: { q: query },
-            dataType: 'json',
-            success: function(data) {
-                displaySearchResults(data);
-            },
-            error: function(xhr, status, error) {
-                console.error('Error en búsqueda CIE-10:', error);
-                $('#searchResults').hide();
-            }
-        });
-    }
-
-    function displaySearchResults(results) {
-        var $resultsDiv = $('#searchResults');
-        $resultsDiv.empty();
-
-        if (results && results.length > 0) {
-            var html = '';
-            results.forEach(function(item) {
-                // Verificar si ya está seleccionado
-                var isSelected = selectedDiagnosticos.some(d => d.id === item.id);
-                var disabledClass = isSelected ? 'disabled' : '';
-                var disabledText = isSelected ? ' (Ya seleccionado)' : '';
-                
-                html += '<div class="search-result-item ' + disabledClass + '" data-id="' + item.id + '" data-codigo="' + item.codigo + '" data-descripcion="' + item.descripcion + '">';
-                html += '<strong>' + item.codigo + '</strong><br>';
-                html += '<small>' + item.descripcion + disabledText + '</small>';
-                html += '</div>';
-            });
-            $resultsDiv.html(html).show();
-
-            // Event handler para seleccionar diagnóstico
-            $('.search-result-item:not(.disabled)').on('click', function() {
-                var id = $(this).data('id');
-                var codigo = $(this).data('codigo');
-                var descripcion = $(this).data('descripcion');
-                
-                addDiagnostico(id, codigo, descripcion);
-                $('#searchDiagnosticos').val('');
-                $('#searchResults').hide();
-            });
-        } else {
-            $resultsDiv.html('<div class="search-result-item disabled">No se encontraron resultados</div>').show();
-        }
-    }
-
-    function addDiagnostico(id, codigo, descripcion) {
-        // Verificar si ya está seleccionado
-        if (selectedDiagnosticos.some(d => d.id === id)) {
-            return;
-        }
-
-        // Agregar a la lista
-        selectedDiagnosticos.push({ id: id, codigo: codigo, descripcion: descripcion });
-        
-        // Actualizar la vista
-        updateSelectedDiagnosticosView();
-        updateHiddenInput();
-    }
-
-    function removeDiagnostico(id) {
-        selectedDiagnosticos = selectedDiagnosticos.filter(d => d.id !== id);
-        updateSelectedDiagnosticosView();
-        updateHiddenInput();
-    }
-
-    function clearSelectedDiagnosticos() {
-        selectedDiagnosticos = [];
-        updateSelectedDiagnosticosView();
-        updateHiddenInput();
-    }
-
-    function updateSelectedDiagnosticosView() {
-        var $container = $('#selectedDiagnosticos');
-        
-        if (selectedDiagnosticos.length === 0) {
-            $container.html('<small class="text-muted">Diagnósticos seleccionados aparecerán aquí</small>');
-        } else {
-            var html = '';
-            selectedDiagnosticos.forEach(function(diag) {
-                html += '<span class="badge bg-primary me-2 mb-2 diagnostico-badge">';
-                html += diag.codigo + ' - ' + diag.descripcion;
-                html += '<button type="button" class="btn-close btn-close-white ms-2" onclick="removeDiagnostico(' + diag.id + ')" style="font-size: 0.7em;"></button>';
-                html += '</span>';
-            });
-            $container.html(html);
-        }
-    }
-
-    function updateHiddenInput() {
-        var ids = selectedDiagnosticos.map(d => d.id);
-        $('#diagnosticosCIE10').val(ids.join(','));
-    }
-
-    // Exponer funciones globalmente
-    window.removeDiagnostico = removeDiagnostico;
-
-    // Botón para limpiar diagnósticos en cada modal de edición
-    $(document).on('click', '.clearEditDiagnosticosBtn', function() {
-        var historiaId = $(this).data('historia-id');
-        $('#editDiagnosticosCIE10' + historiaId).val(null).trigger('change');
-    });
-
-    // Test de la API CIE-10
-    setTimeout(function() {
-        $.get("{{ url_for('buscar_cie10_api') }}" + "?q=E00")
-            .done(function(data) {
-                console.log('Test API CIE-10 exitoso:', data);
-            })
-            .fail(function(xhr, status, error) {
-                console.error('Test API CIE-10 falló:', error);
-            });
-    }, 1000);
-    
-    // Verificación final: asegurar que el modal esté cerrado
-    setTimeout(function() {
-        $('#nuevaHistoriaModal').removeClass('show');
-        console.log('Verificación final: modal cerrado');
-    }, 100);
-});
-</script>
-
-<script>
-// Funciones globales principales (DEFINIR PRIMERO)
-function openCustomModal() {
-    console.log('🔥 FUNCIÓN LLAMADA: Abriendo modal...');
-    var modal = document.getElementById('nuevaHistoriaModal');
-    var modalContent = modal ? modal.querySelector('.custom-modal-content') : null;
-    
-    console.log('🔍 Modal encontrado:', !!modal);
-    console.log('🔍 Modal content encontrado:', !!modalContent);
-    
-    if (modal && modalContent) {
-        console.log('📝 Estado inicial del modal:', {
-            display: modal.style.display,
-            visibility: modal.style.visibility,
-            opacity: modal.style.opacity,
-            classes: modal.className,
-            computedDisplay: window.getComputedStyle(modal).display
-        });
-        
-        // Forzar la visualización del modal
-        modal.style.display = 'block';
-        modal.style.visibility = 'visible';
-        modal.style.opacity = '1';
-        modal.classList.add('show');
-        
-        // FORZAR ESTILOS INLINE AL CONTENIDO DEL MODAL CON VIEWPORT WIDTH
-        modalContent.style.cssText = `
-            position: fixed !important;
-            top: 12% !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            background: white !important;
-            border-radius: 0.5rem !important;
-            width: 38vw !important;
-            max-width: 570px !important;
-            min-width: 470px !important;
-            max-height: 82vh !important;
-            overflow-y: auto !important;
-            z-index: 1001 !important;
-            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-sizing: border-box !important;
-        `;
-        
-        console.log('✅ Modal styles aplicados:', {
-            display: modal.style.display,
-            visibility: modal.style.visibility,
-            opacity: modal.style.opacity,
-            classes: modal.className,
-            contentWidth: modalContent.style.width,
-            contentMaxWidth: modalContent.style.maxWidth,
-            computedDisplay: window.getComputedStyle(modal).display,
-            computedVisibility: window.getComputedStyle(modal).visibility,
-            computedOpacity: window.getComputedStyle(modal).opacity,
-            computedContentWidth: window.getComputedStyle(modalContent).width
-        });
-        
-        // Limpiar formulario y estado previo
-        var form = document.getElementById('nuevaHistoriaForm');
-        if (form) {
-            form.reset();
-            console.log('📝 Formulario limpiado');
-        }
-        
-        if (window.selectedDiagnosticos) {
-            window.selectedDiagnosticos = [];
-            console.log('📝 Diagnósticos limpiados');
-        }
-        
-        // Inicializar búsqueda después de abrir
-        setTimeout(function() {
-            if (typeof initNativeDiagnosticSearch === 'function') {
-                initNativeDiagnosticSearch();
-                console.log('🔍 Búsqueda nativa inicializada');
-            }
-        }, 200);
-        
-        console.log('✅ Modal abierto correctamente');
-    } else {
-        console.error('❌ Modal o modal content no encontrado con ID: nuevaHistoriaModal');
-    }
-}
-
-function closeCustomModal() {
-    console.log('Función global: Cerrando modal...');
-    var modal = document.getElementById('nuevaHistoriaModal');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.style.visibility = 'hidden';
-        modal.style.opacity = '0';
-        modal.classList.remove('show');
-        
-        // Limpiar formulario
-        var form = document.getElementById('nuevaHistoriaForm');
-        if (form) {
-            form.reset();
-        }
-        
-        // Limpiar diagnósticos
-        if (typeof clearSelectedDiagnosticos === 'function') {
-            clearSelectedDiagnosticos();
-        }
-        
-        // Limpiar búsqueda
-        var searchInput = document.getElementById('searchDiagnosticos');
-        var searchResults = document.getElementById('searchResults');
-        if (searchInput) searchInput.value = '';
-        if (searchResults) searchResults.style.display = 'none';
-        
-        console.log('Modal cerrado correctamente');
-    }
-}
-</script>
-
+<script src="{{ url_for('static', filename='js/autocompletar.js') }}"></script>
 {% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/panel/styles.css') }}">
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-<style>
-/* Custom Modal - No z-index conflicts */
-.custom-modal {
-    display: none !important;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-}
-
-.custom-modal.show {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-.custom-modal[style*="display: block"] {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-/* CSS más específico para el modal de historia */
-#nuevaHistoriaModal.historia-modal .historia-modal-content,
-#nuevaHistoriaModal .custom-modal-content,
-.historia-modal .historia-modal-content,
-.custom-modal-content {
-    position: fixed !important;
-    top: 12% !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    background: white !important;
-    border-radius: 0.5rem !important;
-    width: 38vw !important;
-    max-width: 570px !important;
-    min-width: 470px !important;
-    max-height: 82vh !important;
-    overflow-y: auto !important;
-    z-index: 1001 !important;
-    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-sizing: border-box !important;
-}
-
-/* Media queries para hacer el modal responsivo */
-@media (max-width: 768px) {
-    .custom-modal-content {
-        width: 95% !important;
-        max-width: 95% !important;
-        min-width: 300px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-    }
-}
-
-@media (min-width: 769px) and (max-width: 1200px) {
-    .custom-modal-content {
-        width: 450px !important;
-        max-width: 450px !important;
-    }
-}
-
-@media (min-width: 1201px) {
-    .custom-modal-content {
-        width: 400px !important;
-        max-width: 400px !important;
-    }
-}
-
-/* Select2 Styling for CIE-10 Diagnostics */
-.select2-container {
-    width: 100% !important;
-}
-
-.select2-container--bootstrap-5 .select2-selection {
-    min-height: 38px !important;
-    border: 1px solid #0d6efd !important;
-    border-radius: 0.375rem !important;
-}
-
-/* Select2 Z-index enforcement - Multiple strategies */
-.select2-dropdown-forced-top {
-    z-index: 999999 !important;
-    position: absolute !important;
-    display: block !important;
-}
-
-.select2-dropdown {
-    z-index: 999999 !important;
-    border-radius: 0.375rem !important;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-    border: 1px solid #0d6efd !important;
-    position: absolute !important;
-}
-
-/* Force Select2 dropdown to appear above everything */
-.select2-container--open .select2-dropdown {
-    z-index: 999999 !important;
-    position: absolute !important;
-}
-
-.select2-container--bootstrap-5.select2-container--open .select2-dropdown {
-    z-index: 999999 !important;
-    position: absolute !important;
-}
-
-/* Ensure dropdown appears when attached to body */
-body > .select2-container .select2-dropdown {
-    z-index: 999999 !important;
-    position: absolute !important;
-}
-
-/* Override any conflicting styles with maximum specificity */
-.select2-dropdown-forced-top,
-.select2-dropdown {
-    z-index: 999999 !important;
-    position: absolute !important;
-    display: block !important;
-    visibility: visible !important;
-}
-
-.select2-results__option {
-    padding: 8px 12px !important;
-    border-bottom: 1px solid #dee2e6 !important;
-    font-size: 0.9em !important;
-    line-height: 1.4 !important;
-}
-
-.select2-results__option:last-child {
-    border-bottom: none !important;
-}
-
-.select2-results__option--highlighted {
-    background-color: #e3f0ff !important;
-    color: #0d6efd !important;
-}
-
-.select2-results__option--selected {
-    background-color: #0d6efd !important;
-    color: #fff !important;
-}
-
-.select2-selection__choice {
-    background-color: #0d6efd !important;
-    color: #fff !important;
-    border: 1px solid #0d6efd !important;
-    border-radius: 0.25rem !important;
-    padding: 2px 8px !important;
-    margin: 2px !important;
-    font-size: 0.85em !important;
-}
-
-.select2-selection__choice__remove {
-    color: #fff !important;
-    margin-right: 5px !important;
-    font-weight: bold !important;
-    text-decoration: none !important;
-}
-
-.select2-selection__choice__remove:hover {
-    color: #dc3545 !important;
-    background: none !important;
-}
-
-.select2-search--dropdown .select2-search__field {
-    border: 1px solid #ced4da !important;
-    border-radius: 0.25rem !important;
-    padding: 6px 12px !important;
-}
-
-/* Fix for modal z-index issues */
-.modal-xl {
-    max-width: 900px;
-}
-
-/* Prevent text-decoration issues */
-.select2-selection__rendered,
-.select2-selection__choice,
-.select2-results__option {
-    text-decoration: none !important;
-}
-
-/* Loading state */
-.select2-results__option[aria-selected] {
-    text-decoration: none !important;
-}
-
-/* Custom styling for better readability */
-.select2-results__option strong {
-    color: #0d6efd;
-    font-weight: 600;
-}
-
-.select2-results__option small {
-    display: block;
-    color: #6c757d;
-    margin-top: 2px;
-}
-
-/* Ensure dropdown appears above everything */
-.select2-container--open {
-    z-index: 9999 !important;
-}
-
-.select2-dropdown {
-    position: absolute !important;
-}
-
-/* Additional z-index enforcement for all possible states */
-.select2-container {
-    z-index: 1;
-}
-
-.select2-container--open {
-    z-index: 999998 !important;
-}
-
-.select2-container--open .select2-dropdown {
-    z-index: 999999 !important;
-}
-
-.select2-container .select2-dropdown {
-    z-index: 999999 !important;
-}
-
-/* Specific targeting for forced top dropdown */
-.select2-dropdown-forced-top.select2-dropdown {
-    z-index: 999999 !important;
-    position: absolute !important;
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-/* Native Diagnostic Search Styling */
-.search-results-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #0d6efd;
-    border-top: none;
-    border-radius: 0 0 0.375rem 0.375rem;
-    max-height: 150px;
-    overflow-y: auto;
-    z-index: 1050;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    font-size: 0.9em;
-}
-
-.search-result-item {
-    padding: 8px 10px;
-    border-bottom: 1px solid #dee2e6;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    font-size: 0.85em;
-}
-
-.search-result-item:last-child {
-    border-bottom: none;
-}
-
-.search-result-item:hover:not(.disabled) {
-    background-color: #e3f0ff;
-    color: #0d6efd;
-}
-
-.search-result-item.disabled {
-    background-color: #f8f9fa;
-    color: #6c757d;
-    cursor: not-allowed;
-}
-
-.selected-diagnosticos {
-    min-height: 35px;
-    padding: 6px;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    background-color: #f8f9fa;
-    font-size: 0.9em;
-}
-
-.diagnostico-badge {
-    display: inline-flex;
-    align-items: center;
-    font-size: 0.8em;
-    padding: 0.3em 0.6em;
-    max-width: 100%;
-    word-break: break-word;
-    margin: 1px;
-}
-
-.diagnostico-badge .btn-close {
-    margin-left: 0.5em;
-    font-size: 0.7em;
-}
-
-/* Position relative for search container */
-.mb-2:has(#searchDiagnosticos) {
-    position: relative;
-}
-
-/* OVERRIDE FINAL PARA MODAL - MÁXIMA ESPECIFICIDAD */
-html body main .container-fluid #nuevaHistoriaModal.historia-modal .historia-modal-content,
-html body #nuevaHistoriaModal.custom-modal .custom-modal-content,
-html body div#nuevaHistoriaModal .custom-modal-content,
-#nuevaHistoriaModal .custom-modal-content {
-    width: 38vw !important;
-    max-width: 620px !important;
-    min-width: 520px !important;
-    position: fixed !important;
-    top: calc(12% + 60px) !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-sizing: border-box !important;
-}
-
-/* Override para pantallas pequeñas */
-@media (max-width: 768px) {
-    html body #nuevaHistoriaModal .custom-modal-content {
-        width: 92vw !important;
-        max-width: 92vw !important;
-        min-width: 370px !important;
-        top: calc(8% + 60px) !important;
-    }
-}
-
-/* Override para pantallas medianas */
-@media (min-width: 769px) and (max-width: 1400px) {
-    html body #nuevaHistoriaModal .custom-modal-content {
-        width: 42vw !important;
-        max-width: 650px !important;
-        min-width: 550px !important;
-    }
-}
-
-/* Override para pantallas grandes */
-@media (min-width: 1401px) {
-    html body #nuevaHistoriaModal .custom-modal-content {
-        width: 32vw !important;
-        max-width: 620px !important;
-        min-width: 520px !important;
-    }
-}
-</style>
 {% endblock %}

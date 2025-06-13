@@ -21,3 +21,18 @@
 .d-flex.gap-2 {
     gap: 8px !important;
 } 
+
+
+#diagnostico-sugerencias {
+    margin-top: 2px;
+}
+#diagnostico-sugerencias .list-group-item {
+    cursor: pointer;
+    padding: 0.2rem 0.2rem;
+    border: none;
+    border-bottom: 0.5px solid #dee2e6;
+}
+
+#diagnostico-sugerencias .list-group-item:hover {
+    background-color: #f8f9fa;
+}

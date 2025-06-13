@@ -13,8 +13,6 @@ class usuario(db.Model):
     correo = db.Column(db.String(100), unique=True, nullable=False)
     contrasena = db.Column(db.String(255), nullable=False)
     telefono = db.Column(db.String(15), nullable=True)
-    direccion = db.Column(db.String(100), nullable=True)
-    ciudad = db.Column(db.String(50), nullable=True)
     tipo_documento = db.Column(db.String(20), nullable=True)
     numero_documento = db.Column(db.String(20), nullable=True)
     fecha_registro = db.Column(db.DateTime, nullable=False, default=datetime.now)
@@ -87,29 +85,64 @@ class cita(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     paciente_id = db.Column(db.Integer, db.ForeignKey('paciente.id'), nullable=False)
     medico_id = db.Column(db.Integer, db.ForeignKey('medico.id'), nullable=False)
+    servicio_id = db.Column(db.Integer, db.ForeignKey('servicio.id'), nullable=True)
     fecha = db.Column(db.DateTime, nullable=False)
     hora = db.Column(db.Time, nullable=False)
     duracion = db.Column(db.Integer, nullable=False)
-    tipo_cita = db.Column(db.String(20), nullable=False)
     motivo = db.Column(db.String(100), nullable=False)
     estado = db.Column(db.String(20), nullable=False)
     observaciones = db.Column(db.String(200), nullable=True)
     paciente = db.relationship('paciente', backref='citas')
     medico = db.relationship('medico', backref='citas')
+    servicio = db.relationship('servicio', backref='citas')
+
+class cie10(db.Model):
+    __tablename__ = 'cie10'
+    id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.String(10), nullable=False)
+    descripcion = db.Column(db.Text, nullable=False)
+    categoria = db.Column(db.String(10), nullable=False)
+    subcategoria = db.Column(db.Text, nullable=False)
+    fecha_actualizacion = db.Column(db.DateTime, default=datetime.now)
+
+    __table_args__ = (
+        db.Index('idx_cie10_codigo', 'codigo', unique=True),
+    )
+
+    def __repr__(self):
+        return f'<CIE10 {self.codigo}>'
+
+class historia_clinica(db.Model):
+    __tablename__ = 'historia_clinica'
+    id = db.Column(db.Integer, primary_key=True)
+    id_cita = db.Column(db.Integer, db.ForeignKey('cita.id'), nullable=False)
+    fecha = db.Column(db.DateTime, nullable=False)
+    motivo_consulta = db.Column(db.Text, nullable=False)
+    antecedentes = db.Column(db.Text, nullable=True)
+    diagnostico_codigo = db.Column(db.String(10), db.ForeignKey('cie10.codigo'), nullable=True)
+    tratamiento = db.Column(db.Text, nullable=True)
+    
+    # Relaciones
+    cita = db.relationship('cita', backref='historia_clinica', uselist=False)
+    diagnostico = db.relationship('cie10', backref='historias_clinicas')
+    
+    def __repr__(self):
+        return f'<Historia Clínica {self.id}>'
 
 class factura(db.Model):
     __tablename__ = 'factura'
     id = db.Column(db.Integer, primary_key=True)
     id_cita = db.Column(db.Integer, db.ForeignKey('cita.id'), nullable=False)
+    servicio_id = db.Column(db.Integer, db.ForeignKey('servicio.id'), nullable=True)
     servicio = db.Column(db.String(100), nullable=False)
     valor = db.Column(db.Float, nullable=False)
     estado = db.Column(db.String(20), nullable=False, default='pendiente')
     fecha_emision = db.Column(db.DateTime, nullable=False, default=datetime.now)
     fecha_vencimiento = db.Column(db.Date, nullable=False)
     metodo_pago = db.Column(db.String(20), nullable=False)
-    tipo_factura = db.Column(db.String(20), nullable=False)
     observaciones = db.Column(db.Text)
     cita = db.relationship('cita', backref=db.backref('factura', uselist=False))
+    servicio_rel = db.relationship('servicio', backref='facturas')
 
 class configuracion(db.Model):
     __tablename__ = 'configuracion'
@@ -134,43 +167,14 @@ class universidad(db.Model):
     tipo = db.Column(db.String(20))  # Pública o Privada
     estado = db.Column(db.String(20), default='Activa')  # Activa o Inactiva
 
+class servicio(db.Model):
+    __tablename__ = 'servicio'
+    id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.String(20), unique=True, nullable=False)
+    nombre = db.Column(db.String(100), nullable=False)
+    precio = db.Column(db.Float, nullable=False)
+    tipo = db.Column(db.String(20), nullable=False)
+
     def __repr__(self):
-        return f'<universidad {self.nombre}>'
+        return f'<servicio {self.nombre}>'
         
-# En model.py
-class Cie10(db.Model):
-    __tablename__ = 'cie10'
-    id = db.Column(db.Integer, primary_key=True)
-    codigo = db.Column(db.String(10), unique=True, nullable=False, index=True)
-    descripcion = db.Column(db.String(500), nullable=False)
-    capitulo = db.Column(db.String(100), nullable=True)
-    grupo = db.Column(db.String(100), nullable=True)
-    activo = db.Column(db.Boolean, default=True)
-    fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    def __repr__(self):
-        return f'<Cie10 {self.codigo} - {self.descripcion[:30]}>'
-
-# Tabla de asociación para historia_clinica y Cie10
-historia_cie10_association = db.Table('historia_cie10_association',
-    db.Column('historia_clinica_id', db.Integer, db.ForeignKey('historia_clinica.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('cie10_id', db.Integer, db.ForeignKey('cie10.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('tipo_diagnostico', db.String(20), nullable=True)  # 'Principal', 'Relacionado', etc.
-)
-
-class historia_clinica(db.Model):
-    __tablename__ = 'historia_clinica'
-    id = db.Column(db.Integer, primary_key=True)
-    id_cita = db.Column(db.Integer, db.ForeignKey('cita.id', ondelete='CASCADE'), nullable=False)
-    fecha = db.Column(db.DateTime, nullable=False)
-    motivo_consulta = db.Column(db.String(200), nullable=False)
-    antesedentes = db.Column(db.String(200), nullable=True)
-    # Removemos el campo diagnostico ya que ahora usaremos la relación con Cie10
-    tratamiento = db.Column(db.String(200), nullable=True)
-    cita = db.relationship('cita', backref=db.backref('historia_clinica', uselist=False, cascade='all, delete'))
-    
-    # Nueva relación con Cie10
-    diagnosticos = db.relationship('Cie10', 
-                                 secondary=historia_cie10_association,
-                                 backref=db.backref('historias_clinicas', lazy='dynamic'),
-                                 lazy='dynamic')

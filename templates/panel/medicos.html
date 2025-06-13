@@ -7,10 +7,10 @@
             <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#agregarMedicoModal">
                 <i class="fas fa-user-md me-1"></i> Nuevo Médico
             </button>
-            <a href="{{ url_for('exportar_medicos_pdf', busqueda=busqueda, especialidad=especialidad_seleccionada) }}" class="btn btn-sm btn-outline-secondary ms-2">
+            <a href="{{ url_for('exportar_medicos_pdf', busqueda=busqueda, especialidad=especialidad_seleccionada, sexo=sexo_seleccionado) }}" class="btn btn-sm btn-outline-secondary ms-2">
                 <i class="fas fa-file-pdf me-1"></i> Exportar PDF
             </a>
-            <a href="{{ url_for('exportar_medicos_excel', busqueda=busqueda, especialidad=especialidad_seleccionada) }}" class="btn btn-sm btn-outline-success ms-2">
+            <a href="{{ url_for('exportar_medicos_excel', busqueda=busqueda, especialidad=especialidad_seleccionada, sexo=sexo_seleccionado) }}" class="btn btn-sm btn-outline-secondary ms-2">
                 <i class="fas fa-file-excel me-1"></i> Exportar Excel
             </a>
         </div>
@@ -24,17 +24,25 @@
                     <div class="col-md-4">
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
-                            <input type="text" class="form-control" name="busqueda" placeholder="Buscar por nombre, documento, correo..." value="{{ busqueda }}" id="inputBusqueda">
+                            <input type="text" class="form-control" name="busqueda" placeholder="Buscar por nombre, documento, correo..." value="{{ busqueda }}">
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <select class="form-select" name="especialidad" id="selectEspecialidad">
+                    <div class="col-md-2">
+                        <select class="form-select" name="especialidad">
                             <option value="">Todas las especialidades</option>
                             {% for codigo, nombre in especialidades.items() %}
                             <option value="{{ codigo }}" {% if especialidad_seleccionada == codigo %}selected{% endif %}>
                                 {{ nombre }}
                             </option>
                             {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" name="sexo">
+                            <option value="">Todos los géneros</option>
+                            <option value="M" {% if sexo_seleccionado == 'M' %}selected{% endif %}>Masculino</option>
+                            <option value="F" {% if sexo_seleccionado == 'F' %}selected{% endif %}>Femenino</option>
+                            <option value="O" {% if sexo_seleccionado == 'O' %}selected{% endif %}>Otro</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -587,30 +595,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- jQuery debe ir antes que Select2 y cualquier script que use $ -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/es.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ url_for('static', filename='js/panel/alerts.js') }}"></script>
 <script src="{{ url_for('static', filename='js/panel/medicos.js') }}"></script>
-<script>
-$(document).ready(function() {
-    function cargarTablaMedicos() {
-        var busqueda = $('#inputBusqueda').val();
-        var especialidad = $('#selectEspecialidad').val();
-        $.get("{{ url_for('medico') }}", {busqueda: busqueda, especialidad: especialidad, ajax: 1}, function(data) {
-            $('#tabla-medicos').html($(data).find('#tabla-medicos').html());
-        });
-    }
-    $('#inputBusqueda, #selectEspecialidad').on('change keyup', function() {
-        cargarTablaMedicos();
-    });
-    $('#searchForm').on('submit', function(e) {
-        e.preventDefault();
-        cargarTablaMedicos();
-    });
-});
-</script>
 {% endblock %}
 
 {% block extra_css %}

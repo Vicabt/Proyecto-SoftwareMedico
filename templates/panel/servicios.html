@@ -1,0 +1,227 @@
+{% extends 'panel/base_panel.html' %}
+{% block content %}
+
+<main class="container-fluid mt-4 flex-grow-1">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+        <h1 class="h3 fw-bold text-secondary">Gestión de Servicios</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoServicioModal">
+                <i class="fas fa-plus me-1"></i> Nuevo Servicio
+            </button>
+            <a href="{{ url_for('factura') }}" class="btn btn-sm btn-success ms-2">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros de búsqueda -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form action="{{ url_for('servicios') }}" method="GET">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" name="busqueda" value="{{ busqueda }}" placeholder="Buscar por código o nombre...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="tipo">
+                            <option value="" {% if not tipo %}selected{% endif %}>Todos los tipos</option>
+                            {% for tipo_disponible in tipos_disponibles %}
+                            <option value="{{ tipo_disponible }}" {% if tipo == tipo_disponible %}selected{% endif %}>
+                                {{ tipo_disponible|title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i>Filtrar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de servicios -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Código</th>
+                            <th scope="col">Nombre</th>
+                            <th scope="col">Precio</th>
+                            <th scope="col">Tipo de Servicio</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if servicios %}
+                            {% for servicio in servicios.items %}
+                            <tr>
+                                <td>{{ servicio.codigo }}</td>
+                                <td>{{ servicio.nombre }}</td>
+                                <td>${{ "{:,.0f}".format(servicio.precio) }} COP</td>
+                                <td>
+                                    <span class="badge {% if servicio.tipo == 'particular' %}bg-primary{% else %}bg-success{% endif %}">
+                                        {{ servicio.tipo|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary btn-action" title="Editar" data-bs-toggle="modal" data-bs-target="#editarServicioModal{{ servicio.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form action="{{ url_for('eliminar_servicio', id=servicio.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-danger btn-action" title="Eliminar" onclick="return confirm('¿Está seguro de que desea eliminar este servicio?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">No hay servicios registrados</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if servicios.pages > 1 %}
+            <nav aria-label="Paginación de servicios">
+                <ul class="pagination justify-content-center mt-4">
+                    <li class="page-item {% if not servicios.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('servicios', page=servicios.prev_num, busqueda=busqueda, tipo=tipo) if servicios.has_prev else '#' }}" tabindex="{% if not servicios.has_prev %}-1{% endif %}" aria-disabled="{% if not servicios.has_prev %}true{% else %}false{% endif %}">Anterior</a>
+                    </li>
+                    
+                    {% for page_num in servicios.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == servicios.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('servicios', page=page_num, busqueda=busqueda, tipo=tipo) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <li class="page-item {% if not servicios.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('servicios', page=servicios.next_num, busqueda=busqueda, tipo=tipo) if servicios.has_next else '#' }}">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+<!-- Modal para Nuevo Servicio -->
+<div class="modal fade" id="nuevoServicioModal" tabindex="-1" aria-labelledby="nuevoServicioModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="nuevoServicioModalLabel">Registrar Nuevo Servicio</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('agregar_servicio') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="codigo" class="form-label">Código <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="codigo" name="codigo" required placeholder="Ej: CONS001">
+                        <div class="form-text">Código único para identificar el servicio</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre del Servicio <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" required placeholder="Ej: Consulta General">
+                    </div>
+                    <div class="mb-3">
+                        <label for="precio" class="form-label">Precio <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="precio" name="precio" step="1" min="0" required placeholder="45000">
+                            <span class="input-group-text">COP</span>
+                        </div>
+                        <div class="form-text">Ingrese el precio en pesos colombianos (sin decimales)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label">Tipo de Servicio <span class="text-danger">*</span></label>
+                        <select class="form-select" id="tipo" name="tipo" required>
+                            <option value="">Seleccione un tipo</option>
+                            <option value="particular">Particular</option>
+                            <option value="eps">EPS</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Servicio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if servicios %}
+{% for servicio in servicios.items %}
+<!-- Modal para Editar Servicio -->
+<div class="modal fade" id="editarServicioModal{{ servicio.id }}" tabindex="-1" aria-labelledby="editarServicioModalLabel{{ servicio.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editarServicioModalLabel{{ servicio.id }}">Editar Servicio</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('editar_servicio', id=servicio.id) }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editCodigo{{ servicio.id }}" class="form-label">Código <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editCodigo{{ servicio.id }}" name="editCodigo" value="{{ servicio.codigo }}" required>
+                        <div class="form-text">Código único para identificar el servicio</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNombre{{ servicio.id }}" class="form-label">Nombre del Servicio <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editNombre{{ servicio.id }}" name="editNombre" value="{{ servicio.nombre }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPrecio{{ servicio.id }}" class="form-label">Precio <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="editPrecio{{ servicio.id }}" name="editPrecio" value="{{ servicio.precio|int }}" step="1" min="0" required>
+                            <span class="input-group-text">COP</span>
+                        </div>
+                        <div class="form-text">Ingrese el precio en pesos colombianos (sin decimales)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTipo{{ servicio.id }}" class="form-label">Tipo de Servicio <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editTipo{{ servicio.id }}" name="editTipo" required>
+                            <option value="particular" {% if servicio.tipo == 'particular' %}selected{% endif %}>Particular</option>
+                            <option value="eps" {% if servicio.tipo == 'eps' %}selected{% endif %}>EPS</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ url_for('static', filename='js/panel/alerts.js') }}"></script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/panel/styles.css') }}">
+{% endblock %} 

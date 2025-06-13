@@ -7,10 +7,10 @@
             <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevaCitaModal">
                 <i class="fas fa-calendar-plus me-1"></i> Nueva Cita
             </button>
-            <a href="{{ url_for('exportar_citas_pdf', busqueda=busqueda, fecha=fecha, estado=estado) }}" class="btn btn-sm btn-outline-secondary ms-2">
-                <i class="fas fa-file-export me-1"></i> Exportar PDF
+            <a href="{{ url_for('exportar_citas_pdf', busqueda=request.args.get('busqueda', ''), fecha=request.args.get('fecha', ''), estado=request.args.get('estado', '')) }}" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="fas fa-file-pdf me-1"></i> Exportar PDF
             </a>
-            <a href="{{ url_for('exportar_citas_excel', busqueda=busqueda, fecha=fecha, estado=estado) }}" class="btn btn-sm btn-outline-success ms-2">
+            <a href="{{ url_for('exportar_citas_excel', busqueda=request.args.get('busqueda', ''), fecha=request.args.get('fecha', ''), estado=request.args.get('estado', '')) }}" class="btn btn-sm btn-outline-secondary ms-2">
                 <i class="fas fa-file-excel me-1"></i> Exportar Excel
             </a>
         </div>
@@ -27,13 +27,13 @@
                             <input type="text" class="form-control" name="busqueda" placeholder="Buscar cita..." value="{{ request.args.get('busqueda', '') }}">
                         </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <div class="input-group">
                         <span class="input-group-text bg-light"><i class="fas fa-calendar"></i></span>
                             <input type="date" class="form-control" name="fecha" value="{{ request.args.get('fecha', '') }}">
                         </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                         <select class="form-select" name="estado">
                             <option value="">Estado de la cita</option>
                             <option value="programada" {% if request.args.get('estado') == 'programada' %}selected{% endif %}>Programada</option>
@@ -44,7 +44,12 @@
                 </div>
                 <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i>Filtrar</button>
-                    </div>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('cita') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-undo me-1"></i> Limpiar
+                    </a>
+                </div>
                 </div>
             </form>
         </div>
@@ -94,6 +99,9 @@
                                     <button type="button" class="btn btn-primary btn-action" title="Ver detalles" data-bs-toggle="modal" data-bs-target="#detallesCitaModal{{ cita.id }}">
                                         <i class="fas fa-eye"></i>
                                     </button>
+                                    <a href="{{ url_for('exportar_cita_pdf', id=cita.id) }}" class="btn btn-dark btn-action" title="Exportar PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
                                     <button type="button" class="btn btn-success btn-action text-white" title="Editar" data-bs-toggle="modal" data-bs-target="#editarCitaModal{{ cita.id }}">
                                         <i class="fas fa-edit"></i>
                                     </button>
@@ -190,6 +198,20 @@
                         </div>
                     </div>
                     <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="servicioCita" class="form-label">Servicio</label>
+                            <select class="form-select border border-primary rounded" id="servicioCita" name="servicioCita">
+                                <option value="" selected>Seleccionar servicio</option>
+                                {% for servicio in servicios %}
+                                <option value="{{ servicio.id }}" data-precio="{{ servicio.precio }}">{{ servicio.codigo }} - {{ servicio.nombre }} ({{ servicio.tipo|title }}) - ${{ "{:,.2f}".format(servicio.precio) }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Espacio para mantener el diseño -->
+                        </div>
+                    </div>
+                    <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="fechaCita" class="form-label">Fecha</label>
                             <input type="date" class="form-control border border-primary rounded" id="fechaCita" name="fechaCita" required>
@@ -208,19 +230,9 @@
                         </div>
                     </div>
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="tipoCita" class="form-label">Tipo de Cita</label>
-                            <select class="form-select border border-primary rounded" id="tipoCita" name="tipoCita" required>
-                                <option value="" selected disabled>Seleccionar</option>
-                                <option value="primera">Primera vez</option>
-                                <option value="control">Control</option>
-                                <option value="urgencia">Urgencia</option>
-                                <option value="procedimiento">Procedimiento</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="motivoCita" class="form-label">Sintomas</label>
-                            <textarea class="form-control border border-primary rounded" id="motivoCita" name="motivoCita" rows="2" placeholder="Ingrese los sintomas del paciente" required></textarea>
+                        <div class="col-md-12">
+                            <label for="motivoCita" class="form-label">Motivo de la Cita</label>
+                            <textarea class="form-control border border-primary rounded" id="motivoCita" name="motivoCita" rows="2" placeholder="Ingrese el motivo de la cita" required></textarea>
                         </div>
                     </div>
                     <div class="row mb-3">
@@ -282,6 +294,20 @@
                         </div>
                     </div>
                     <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editServicioCita{{ cita.id }}" class="form-label">Servicio</label>
+                            <select class="form-select border border-primary rounded" id="editServicioCita{{ cita.id }}" name="editServicioCita">
+                                <option value="">Seleccionar servicio</option>
+                                {% for servicio in servicios %}
+                                <option value="{{ servicio.id }}" {% if cita.servicio_id == servicio.id %}selected{% endif %} data-precio="{{ servicio.precio }}">{{ servicio.codigo }} - {{ servicio.nombre }} ({{ servicio.tipo|title }}) - ${{ "{:,.2f}".format(servicio.precio) }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Espacio para mantener el diseño -->
+                        </div>
+                    </div>
+                    <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="editFechaCita{{ cita.id }}" class="form-label">Fecha</label>
                             <input type="date" class="form-control border border-primary rounded" id="editFechaCita{{ cita.id }}" name="editFechaCita" value="{{ cita.fecha.strftime('%Y-%m-%d') }}" required>
@@ -300,16 +326,7 @@
                         </div>
                     </div>
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="editTipoCita{{ cita.id }}" class="form-label">Tipo de Cita</label>
-                            <select class="form-select border border-primary rounded" id="editTipoCita{{ cita.id }}" name="editTipoCita" required>
-                                <option value="primera" {% if cita.tipo_cita == 'primera' %}selected{% endif %}>Primera vez</option>
-                                <option value="control" {% if cita.tipo_cita == 'control' %}selected{% endif %}>Control</option>
-                                <option value="urgencia" {% if cita.tipo_cita == 'urgencia' %}selected{% endif %}>Urgencia</option>
-                                <option value="procedimiento" {% if cita.tipo_cita == 'procedimiento' %}selected{% endif %}>Procedimiento</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <label for="editMotivoCita{{ cita.id }}" class="form-label">Motivo de la Cita</label>
                             <textarea class="form-control border border-primary rounded" id="editMotivoCita{{ cita.id }}" name="editMotivoCita" rows="2" placeholder="Ingrese el motivo de la cita" required>{{ cita.motivo }}</textarea>
                         </div>
@@ -408,9 +425,6 @@
                     <div class="col-12">
                          <h6 class="text-muted mb-3"><i class="fas fa-notes-medical me-2"></i>Detalles Adicionales de la Cita</h6>
                          <dl class="row">
-                            <dt class="col-sm-3">Tipo de Cita:</dt>
-                            <dd class="col-sm-9">{{ cita.tipo_cita }}</dd>
-
                             <dt class="col-sm-3">Motivo:</dt>
                             <dd class="col-sm-9">{{ cita.motivo }}</dd>
 
@@ -427,6 +441,9 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times me-1"></i>Cerrar
                 </button>
+                <a href="{{ url_for('exportar_cita_pdf', id=cita.id) }}" class="btn btn-info">
+                    <i class="fas fa-file-pdf me-1"></i>Exportar PDF
+                </a>
                 <!-- Ensure the edit modal exists and the ID matches -->
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editarCitaModal{{ cita.id }}" onclick="$('#detallesCitaModal{{ cita.id }}').modal('hide')">
                     <i class="fas fa-edit me-1"></i>Editar Cita

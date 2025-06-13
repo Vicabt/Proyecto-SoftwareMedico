@@ -8,8 +8,14 @@
             <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevaFacturaModal">
                 <i class="fas fa-file-invoice me-1"></i> Nueva Factura
             </button>
-            <a href="{{ url_for('exportar_facturas_pdf') }}" class="btn btn-sm btn-outline-secondary ms-2">
+            <a href="{{ url_for('servicios') }}" class="btn btn-sm btn-primary ms-2">
+                <i class="fas fa-list me-1"></i> Servicios
+            </a>
+            <a href="{{ url_for('exportar_facturas_pdf', busqueda=busqueda, estado=estado, fecha=fecha) }}" class="btn btn-sm btn-outline-secondary ms-2">
                 <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+            </a>
+            <a href="{{ url_for('exportar_facturas_excel', busqueda=busqueda, estado=estado, fecha=fecha) }}" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="fas fa-file-excel me-1"></i> Exportar Excel
             </a>
         </div>
     </div>
@@ -25,7 +31,7 @@
                             <input type="text" class="form-control" name="busqueda" value="{{ busqueda }}" placeholder="Buscar por número o paciente...">
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-select" name="estado">
                             <option value="" {% if not estado %}selected{% endif %}>Todos los estados</option>
                             <option value="pendiente" {% if estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
@@ -33,11 +39,16 @@
                             <option value="anulada" {% if estado == 'anulada' %}selected{% endif %}>Anulada</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <input type="date" class="form-control" name="fecha" value="{{ fecha }}">
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i>Filtrar</button>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('factura') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-undo me-1"></i> Limpiar
+                        </a>
                     </div>
                 </div>
             </form>
@@ -70,7 +81,7 @@
                                 <td>{{ factura.fecha_emision.strftime('%d/%m/%Y') }}</td>
                                 <td>{{ factura.fecha_vencimiento.strftime('%d/%m/%Y') }}</td>
                                 <td>{{ factura.servicio }}</td>
-                                <td>${{ "{:,.2f}".format(factura.valor) }}</td>
+                                <td>${{ "{:,.0f}".format(factura.valor) }} COP</td>
                                 <td>
                                     <span class="badge {% if factura.estado == 'pagada' %}bg-success{% elif factura.estado == 'pendiente' %}bg-warning{% else %}bg-danger{% endif %}">
                                         {{ factura.estado|title }}
@@ -141,36 +152,41 @@
                 <h5 class="modal-title" id="nuevaFacturaModalLabel">Registrar Nueva Factura</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="nuevaFacturaForm" action="{{ url_for('factura') }}" method="GET">
+            <form id="facturaForm" action="{{ url_for('agregar_factura') }}" method="POST">
                 <div class="modal-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="citaFactura" class="form-label">Cita asociada</label>
-                            <select class="form-select border border-primary rounded" id="citaFactura" name="citaFactura" required>
+                            <select class="form-select border border-primary rounded" id="citaFactura" name="id_cita" required onchange="actualizarServicioFactura()">
                                 <option value="" selected disabled>Seleccionar cita</option>
                                 {% for c in citas %}
                                     {% if not c.factura %}
-                                    <option value="{{ c.id }}" data-servicio="{{ ESPECIALIDADES.get(c.medico.especialidad, 'No especificada') }}">{{ c.fecha.strftime('%d/%m/%Y') }} - {{ c.paciente.nombre }} {{ c.paciente.apellido }} (Dr. {{ c.medico.nombre }}) - {{ ESPECIALIDADES.get(c.medico.especialidad, 'No especificada') }}</option>
+                                    <option value="{{ c.id }}" 
+                                            data-servicio-id="{{ c.servicio_id if c.servicio_id else '' }}"
+                                            data-servicio-nombre="{{ c.servicio.nombre if c.servicio else '' }}"
+                                            data-servicio-precio="{{ c.servicio.precio if c.servicio else '' }}">
+                                        {{ c.fecha.strftime('%d/%m/%Y') }} - {{ c.paciente.nombre }} {{ c.paciente.apellido }} (Dr. {{ c.medico.nombre }})
+                                    </option>
                                     {% endif %}
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="servicioFactura" class="form-label">Servicio</label>
-                            <input type="text" class="form-control border border-primary rounded" id="servicioFactura" readonly>
+                            <label for="servicioIdFactura" class="form-label">Servicio</label>
+                            <select class="form-select border border-primary rounded" id="servicioIdFactura" name="servicio_id" onchange="actualizarPrecioServicio()">
+                                <option value="">Seleccionar servicio</option>
+                                {% for servicio in servicios %}
+                                <option value="{{ servicio.id }}" data-precio="{{ servicio.precio }}" data-nombre="{{ servicio.nombre }}">
+                                    {{ servicio.codigo }} - {{ servicio.nombre }} ({{ servicio.tipo|title }}) - ${{ "{:,.0f}".format(servicio.precio) }} COP
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
-                </div>
-            </form>
-            
-            <form id="facturaForm" action="{{ url_for('agregar_factura') }}" method="POST">
-                <input type="hidden" name="id_cita" id="id_cita">
-                <input type="hidden" name="servicio" id="servicioHidden">
-                <div class="modal-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="valor" class="form-label">Valor de la Consulta</label>
-                            <input type="number" class="form-control border border-primary rounded" id="valor" name="valor" placeholder="Ingrese el valor de la consulta" required>
+                            <input type="number" class="form-control border border-primary rounded" id="valor" name="valor" placeholder="Ingrese el valor de la consulta" required step="0.01" min="0">
                         </div>
                         <div class="col-md-6">
                             <label for="fechaEmisionFactura" class="form-label">Fecha de Emisión</label>
@@ -199,22 +215,10 @@
                                 <option value="tarjeta">Tarjeta</option>
                                 <option value="transferencia">Transferencia</option>
                                 <option value="eps">EPS</option>
-                                <option value="particular">Particular</option>
                             </select>
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="tipoFactura" class="form-label">Tipo de Factura</label>
-                            <select class="form-select border border-primary rounded" id="tipoFactura" name="tipoFactura" required>
-                                <option value="consulta">Consulta</option>
-                                <option value="procedimiento">Procedimiento</option>
-                                <option value="examen">Examen</option>
-                                <option value="medicamento">Medicamento</option>
-                                <option value="otros">Otros</option>
-                            </select>
-                        </div>
-                    </div>
+
                     <div class="row mb-3">
                         <div class="col-12">
                             <label for="observacionesFactura" class="form-label">Observaciones</label>
@@ -304,7 +308,7 @@
                                         <strong>Servicio:</strong> {{ factura.servicio }}
                                     </li>
                                     <li class="mb-2">
-                                        <strong>Valor:</strong> ${{ "{:,.2f}".format(factura.valor) }}
+                                        <strong>Valor:</strong> ${{ "{:,.0f}".format(factura.valor) }} COP
                                     </li>
                                     <li>
                                         <strong>Método de Pago:</strong> {{ factura.metodo_pago|title }}
@@ -379,8 +383,22 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="editServicioFactura{{ factura.id }}" class="form-label">Servicio</label>
-                            <input type="text" class="form-control border border-primary rounded" id="editServicioFactura{{ factura.id }}" name="editServicioFactura" value="{{ factura.servicio }}" required>
+                            <label for="editServicioIdFactura{{ factura.id }}" class="form-label">Servicio</label>
+                            <select class="form-select border border-primary rounded" 
+                                   id="editServicioIdFactura{{ factura.id }}" 
+                                   name="editServicioId" 
+                                   data-factura-id="{{ factura.id }}"
+                                   onchange="actualizarPrecioServicioEditData(this)">
+                                <option value="">Seleccionar servicio</option>
+                                {% for servicio in servicios %}
+                                <option value="{{ servicio.id }}" 
+                                        {% if factura.servicio_id == servicio.id %}selected{% endif %}
+                                        data-precio="{{ servicio.precio }}" 
+                                        data-nombre="{{ servicio.nombre }}">
+                                    {{ servicio.codigo }} - {{ servicio.nombre }} ({{ servicio.tipo|title }}) - ${{ "{:,.0f}".format(servicio.precio) }} COP
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label for="editValorFactura{{ factura.id }}" class="form-label">Valor</label>
@@ -393,6 +411,7 @@
                             <select class="form-select border border-primary rounded" id="editEstadoFactura{{ factura.id }}" name="editEstadoFactura" required>
                                 <option value="pendiente" {% if factura.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
                                 <option value="pagada" {% if factura.estado == 'pagada' %}selected{% endif %}>Pagada</option>
+                                <option value="anulada" {% if factura.estado == 'anulada' %}selected{% endif %}>Anulada</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -407,6 +426,7 @@
                                 <option value="efectivo" {% if factura.metodo_pago == 'efectivo' %}selected{% endif %}>Efectivo</option>
                                 <option value="tarjeta" {% if factura.metodo_pago == 'tarjeta' %}selected{% endif %}>Tarjeta</option>
                                 <option value="transferencia" {% if factura.metodo_pago == 'transferencia' %}selected{% endif %}>Transferencia</option>
+                                <option value="eps" {% if factura.metodo_pago == 'eps' %}selected{% endif %}>EPS</option>
                             </select>
                         </div>
                     </div>
@@ -433,14 +453,58 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ url_for('static', filename='js/panel/alerts.js') }}"></script>
 <script>
-    document.getElementById('citaFactura').addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const servicio = selectedOption.getAttribute('data-servicio');
-        const idCita = this.value;
-        document.getElementById('servicioFactura').value = servicio;
-        document.getElementById('servicioHidden').value = servicio;
-        document.getElementById('id_cita').value = idCita;
-    });
+    function actualizarServicioFactura() {
+        const citaSelect = document.getElementById('citaFactura');
+        const servicioSelect = document.getElementById('servicioIdFactura');
+        const valorInput = document.getElementById('valor');
+        
+        const selectedOption = citaSelect.options[citaSelect.selectedIndex];
+        const servicioId = selectedOption.getAttribute('data-servicio-id');
+        const servicioPrecio = selectedOption.getAttribute('data-servicio-precio');
+        
+        // Si la cita tiene un servicio asociado, seleccionarlo automáticamente
+        if (servicioId) {
+            servicioSelect.value = servicioId;
+            valorInput.value = servicioPrecio;
+        } else {
+            servicioSelect.value = '';
+            valorInput.value = '';
+        }
+    }
+    
+    function actualizarPrecioServicio() {
+        const servicioSelect = document.getElementById('servicioIdFactura');
+        const valorInput = document.getElementById('valor');
+        
+        const selectedOption = servicioSelect.options[servicioSelect.selectedIndex];
+        const precio = selectedOption.getAttribute('data-precio');
+        
+        if (precio) {
+            valorInput.value = precio;
+        }
+    }
+    
+    function actualizarPrecioServicioEditData(selectElement) {
+        const facturaId = selectElement.getAttribute('data-factura-id');
+        const servicioSelect = selectElement;
+        const valorInput = document.getElementById('editValorFactura' + facturaId);
+        
+        if (!servicioSelect || !valorInput) {
+            console.error('Elementos no encontrados para facturaId:', facturaId);
+            return;
+        }
+        
+        const selectedOption = servicioSelect.options[servicioSelect.selectedIndex];
+        if (!selectedOption) {
+            return;
+        }
+        
+        const precio = selectedOption.getAttribute('data-precio');
+        
+        if (precio) {
+            valorInput.value = precio;
+        }
+    }
 </script>
 {% endblock %}
 

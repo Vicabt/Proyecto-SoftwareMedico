@@ -7,10 +7,10 @@
             <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoPacienteModal">
                 <i class="fas fa-user-plus me-1"></i> Nuevo Paciente
             </button>
-            <a href="{{ url_for('exportar_pacientes_pdf', busqueda=busqueda) }}" class="btn btn-sm btn-outline-secondary ms-2">
+            <a href="{{ url_for('exportar_pacientes_pdf', busqueda=request.args.get('busqueda', ''), grupo_sanguineo=request.args.get('grupo_sanguineo', ''), sexo=request.args.get('sexo', '')) }}" class="btn btn-sm btn-outline-secondary ms-2">
                 <i class="fas fa-file-pdf me-1"></i> Exportar PDF
             </a>
-            <a href="{{ url_for('exportar_pacientes_excel', busqueda=busqueda) }}" class="btn btn-sm btn-outline-success ms-2">
+            <a href="{{ url_for('exportar_pacientes_excel', busqueda=request.args.get('busqueda', ''), grupo_sanguineo=request.args.get('grupo_sanguineo', ''), sexo=request.args.get('sexo', '')) }}" class="btn btn-sm btn-outline-secondary ms-2">
                 <i class="fas fa-file-excel me-1"></i> Exportar Excel
             </a>
         </div>
@@ -21,11 +21,32 @@
         <div class="card-body">
             <form method="GET" action="{{ url_for('pacientes') }}" id="searchForm">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
                             <input type="text" class="form-control" name="busqueda" placeholder="Buscar por nombre, documento, correo..." value="{{ busqueda }}">
                         </div>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" name="grupo_sanguineo">
+                            <option value="" {% if not grupo_sanguineo %}selected{% endif %}>Todos los tipos de sangre</option>
+                            <option value="A+" {% if grupo_sanguineo == 'A+' %}selected{% endif %}>A+</option>
+                            <option value="A-" {% if grupo_sanguineo == 'A-' %}selected{% endif %}>A-</option>
+                            <option value="B+" {% if grupo_sanguineo == 'B+' %}selected{% endif %}>B+</option>
+                            <option value="B-" {% if grupo_sanguineo == 'B-' %}selected{% endif %}>B-</option>
+                            <option value="AB+" {% if grupo_sanguineo == 'AB+' %}selected{% endif %}>AB+</option>
+                            <option value="AB-" {% if grupo_sanguineo == 'AB-' %}selected{% endif %}>AB-</option>
+                            <option value="O+" {% if grupo_sanguineo == 'O+' %}selected{% endif %}>O+</option>
+                            <option value="O-" {% if grupo_sanguineo == 'O-' %}selected{% endif %}>O-</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" name="sexo">
+                            <option value="" {% if not sexo %}selected{% endif %}>Todos los géneros</option>
+                            <option value="M" {% if sexo == 'M' %}selected{% endif %}>Masculino</option>
+                            <option value="F" {% if sexo == 'F' %}selected{% endif %}>Femenino</option>
+                            <option value="O" {% if sexo == 'O' %}selected{% endif %}>Otro</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">
@@ -105,14 +126,14 @@
                 <ul class="pagination justify-content-center">
                     <!-- Primera página -->
                     <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('pacientes', page=1, busqueda=busqueda) }}" aria-label="Primera">
+                        <a class="page-link" href="{{ url_for('pacientes', page=1, busqueda=busqueda, grupo_sanguineo=grupo_sanguineo, sexo=sexo) }}" aria-label="Primera">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </li>
                     
                     <!-- Anterior -->
                     <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('pacientes', page=pagination.prev_num, busqueda=busqueda) }}" aria-label="Anterior">
+                        <a class="page-link" href="{{ url_for('pacientes', page=pagination.prev_num, busqueda=busqueda, grupo_sanguineo=grupo_sanguineo, sexo=sexo) }}" aria-label="Anterior">
                             <span aria-hidden="true">&lsaquo;</span>
                         </a>
                     </li>
@@ -121,7 +142,7 @@
                     {% for page in pagination.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
                         {% if page %}
                             <li class="page-item {% if page == pagination.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('pacientes', page=page, busqueda=busqueda) }}">{{ page }}</a>
+                                <a class="page-link" href="{{ url_for('pacientes', page=page, busqueda=busqueda, grupo_sanguineo=grupo_sanguineo, sexo=sexo) }}">{{ page }}</a>
                             </li>
                         {% else %}
                             <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -130,14 +151,14 @@
 
                     <!-- Siguiente -->
                     <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('pacientes', page=pagination.next_num, busqueda=busqueda) }}" aria-label="Siguiente">
+                        <a class="page-link" href="{{ url_for('pacientes', page=pagination.next_num, busqueda=busqueda, grupo_sanguineo=grupo_sanguineo, sexo=sexo) }}" aria-label="Siguiente">
                             <span aria-hidden="true">&rsaquo;</span>
                         </a>
                     </li>
 
                     <!-- Última página -->
                     <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('pacientes', page=pagination.pages, busqueda=busqueda) }}" aria-label="Última">
+                        <a class="page-link" href="{{ url_for('pacientes', page=pagination.pages, busqueda=busqueda, grupo_sanguineo=grupo_sanguineo, sexo=sexo) }}" aria-label="Última">
                             <span aria-hidden="true">&raquo;</span>
                         </a>
                     </li>
@@ -591,7 +612,18 @@
                                             <i class="fas fa-briefcase-medical me-2"></i>Seguridad Social
                                         </h6>
                                         <ul class="list-unstyled mb-0">
-                                            <li><strong>EPS:</strong> {% for eps in lista_eps %}{% if eps.codigo == p.eps %}{{ eps.nombre }}{% endif %}{% endfor %}</li>
+                                            <li><strong>EPS:</strong> 
+                                                {% set eps_encontrada = false %}
+                                                {% for eps in lista_eps %}
+                                                    {% if eps.codigo == p.eps %}
+                                                        {{ eps.nombre }}
+                                                        {% set eps_encontrada = true %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {% if not eps_encontrada %}
+                                                    {% if p.eps %}{{ p.eps }}{% else %}No especificada{% endif %}
+                                                {% endif %}
+                                            </li>
                                             <li><strong>Tipo de Régimen:</strong> {{ p.tipo_regimen }}</li>
                                         </ul>
                                     </div>
